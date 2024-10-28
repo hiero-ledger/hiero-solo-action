@@ -1,24 +1,56 @@
-name: With MirrorNode
+name: With MirrorNode - PR Check
 
 on:
+  pull_request:
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Setup Hedera Solo
+      - name: Setup Hedera Solo with Mirror Node
         uses: ./
         with:
           installMirrorNode: true
         id: solo
 
-      - name: Use Hedera Solo
+      - name: Validate Hedera Solo Output with Mirror Node
         run: |
           echo "Account ID: ${{ steps.solo.outputs.accountId }}"
           echo "Private Key: ${{ steps.solo.outputs.privateKey }}"
           echo "Public Key: ${{ steps.solo.outputs.publicKey }}"
-          curl -X 'GET' 'http://localhost:8080/api/v1/network/nodes' -H 'accept: application/json'
+
+          # Validation checks
+          if [ -z "${{ steps.solo.outputs.accountId }}" ]; then
+            echo "Error: Account ID is empty"
+            exit 1
+          fi
+          if [ -z "${{ steps.solo.outputs.privateKey }}" ]; then
+            echo "Error: Private Key is empty"
+            exit 1
+          fi
+          if [ -z "${{ steps.solo.outputs.publicKey }}" ]; then
+            echo "Error: Public Key is empty"
+            exit 1
+          fi
+
+      - name: Test Mirror Node API
+        run: |
+          response=$(curl -s -X 'GET' 'http://localhost:8080/api/v1/network/nodes' -H 'accept: application/json')
+          echo "Mirror Node API response: $response"
+          
+          # Check for specific key in JSON response
+          if [[ "$response" != *"nodes"* ]]; then
+            echo "Error: Mirror Node API response does not contain 'nodes'"
+            exit 1
+          fi
