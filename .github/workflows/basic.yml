@@ -1,11 +1,19 @@
-name: Simple Usage
+name: Simple Usage - PR Check
 
 on:
+  pull_request:
+    branches:
+      - main  # Change as necessary to specify branches to trigger on
   workflow_dispatch:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]  # Specifies OS matrix
+
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
@@ -14,8 +22,22 @@ jobs:
         uses: ./
         id: solo
 
-      - name: Use Hedera Solo
+      - name: Validate Hedera Solo Output
         run: |
           echo "Account ID: ${{ steps.solo.outputs.accountId }}"
           echo "Private Key: ${{ steps.solo.outputs.privateKey }}"
           echo "Public Key: ${{ steps.solo.outputs.publicKey }}"
+
+          # Validation checks
+          if [ -z "${{ steps.solo.outputs.accountId }}" ]; then
+            echo "Error: Account ID is empty"
+            exit 1
+          fi
+          if [ -z "${{ steps.solo.outputs.privateKey }}" ]; then
+            echo "Error: Private Key is empty"
+            exit 1
+          fi
+          if [ -z "${{ steps.solo.outputs.publicKey }}" ]; then
+            echo "Error: Public Key is empty"
+            exit 1
+          fi
