@@ -10,13 +10,13 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Setup Hedera Solo
+      - name: Setup Hiero Solo
         uses: ./
         with:
           installMirrorNode: true
         id: solo
 
-      - name: Use Hedera Solo
+      - name: Use Hiero Solo
         run: |
           echo "Account ID: ${{ steps.solo.outputs.accountId }}"
           echo "Private Key: ${{ steps.solo.outputs.privateKey }}"

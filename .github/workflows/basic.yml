@@ -12,11 +12,11 @@ jobs:
       - name: Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Setup Hedera Solo
+      - name: Setup Hiero Solo
         uses: ./
         id: solo
 
-      - name: Validate Hedera Solo Outputs
+      - name: Validate Hiero Solo Outputs
         run: |
           if [ -z "${{ steps.solo.outputs.accountId }}" ]; then
             echo "Account ID is missing!"
