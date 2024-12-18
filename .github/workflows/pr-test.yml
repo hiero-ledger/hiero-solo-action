@@ -1,0 +1,33 @@
+name: PR Test Workflow
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-pr:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: Setup Hedera Solo
+        uses: ./
+        id: solo
+
+      - name: Use Hedera Solo
+        run: |
+          echo "Account ID: ${{ steps.solo.outputs.accountId }}"
+          echo "Private Key: ${{ steps.solo.outputs.privateKey }}"
+          echo "Public Key: ${{ steps.solo.outputs.publicKey }}"
+          RESPONSE=$(curl -s -w "%{http_code}" -X 'GET' 'http://localhost:8080/api/v1/network/nodes' -H 'accept: application/json' -o response.json)
+
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "Error: API request failed with status code $RESPONSE"
+            cat response.json
+            exit 1
+          else
+            echo "API request successful"
+            cat response.json
+          fi
