@@ -9,7 +9,7 @@ inputs:
   hederaVersion:
     description: "Version of Hedera to use. Defaults to Mainnet version."
     required: false
-    default: "v0.58.1"
+    default: "v0.52.2"
   mirrorNodePort:
     description: "Port for Mirror Node"
     required: false
@@ -47,7 +47,7 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
       with:
-        node-version: 20
+        node-version: 22
 
     - name: Install WGet CLI
       shell: bash
@@ -68,16 +68,12 @@ runs:
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@0.31.4
+      run: npm install -g @hashgraph/solo@0.28.1
 
     - name: Deploy Solo Test Network
       shell: bash
       run: |
-        kubectl create namespace solo-test || echo "Namespace already exists"
-        solo init \
-          --release-tag ${{ inputs.hederaVersion }} \
-          --namespace solo-test \
-          --profile local
+        solo init -i node0 -t ${{ inputs.hederaVersion }} -n solo-test --key-format pem --profile local
         solo cluster setup
         solo node keys --tls-keys --gossip-keys
         solo network deploy
