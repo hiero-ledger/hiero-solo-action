@@ -74,10 +74,8 @@ runs:
       shell: bash
       run: |
         solo init \
-          --node-ids node0 \
           --release-tag ${{ inputs.hederaVersion }} \
           --namespace solo-test \
-          --key-format pem \
           --profile local
         solo cluster setup
         solo node keys --tls-keys --gossip-keys
