@@ -73,6 +73,7 @@ runs:
     - name: Deploy Solo Test Network
       shell: bash
       run: |
+        kubectl create namespace solo-test || echo "Namespace already exists"
         solo init \
           --release-tag ${{ inputs.hederaVersion }} \
           --namespace solo-test \
