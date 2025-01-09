@@ -103,8 +103,7 @@ runs:
           --namespace solo-test \
           --profile local \
           --relay-release v0.48.0 \
-          --replica-count 1 \
-          --quiet-mode
+          --replica-count 1
         echo "Forwarding JSON-RPC-Relay endpoint..."
         kubectl port-forward svc/json-rpc-relay -n solo-test ${{ inputs.relayPort }}:7546 &
         echo "JSON-RPC-Relay installed and forwarded successfully"
