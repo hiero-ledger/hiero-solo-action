@@ -24,5 +24,6 @@ jobs:
         shell: bash
         run: |
           echo "Testing JSON-RPC-Relay..."
+          sleep 10
           curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://localhost:7546
           echo "JSON-RPC-Relay test completed."
