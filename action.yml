@@ -9,7 +9,7 @@ inputs:
   hederaVersion:
     description: "Version of Hedera to use. Defaults to Mainnet version."
     required: false
-    default: "v0.58.1"
+    default: "v0.54.0"
   mirrorNodePort:
     description: "Port for Mirror Node"
     required: false
@@ -47,7 +47,7 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
       with:
-        node-version: 22
+        node-version: 20.18.1
 
     - name: Install WGet CLI
       shell: bash
@@ -62,18 +62,18 @@ runs:
       uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
       with:
         version: v0.21.0
-        kubectl_version: v1.28.6
+        kubectl_version: v1.29.1
         cluster_name: solo-e2e
         wait: 120s
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@0.32.0
+      run: npm install -g @hashgraph/solo@0.31.4
 
     - name: Deploy Solo Test Network
       shell: bash
       run: |
-        solo init -i node0 -t ${{ inputs.hederaVersion }} -n solo-test --dev --cache-dir /home/runner/.solo
+        solo init -i node0 -t v0.54.0 -n solo-test --profile local
         solo cluster setup
         solo node keys --tls-keys --gossip-keys
         solo network deploy
