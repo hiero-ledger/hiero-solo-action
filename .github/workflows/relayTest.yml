@@ -16,8 +16,9 @@ jobs:
       - name: Run Hedera Solo with JSON-RPC-Relay
         uses: ./
         with:
-          installMirrorNode: true
+          installMirrorNode: false
           installRelay: true
+          hederaVersion: v0.52.2
           relayPort: 7546
 
       - name: Test JSON-RPC-Relay
