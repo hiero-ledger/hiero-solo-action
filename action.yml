@@ -73,7 +73,7 @@ runs:
     - name: Deploy Solo Test Network
       shell: bash
       run: |
-        solo init --namespace solo-test --key-format pem --profile local --dev
+        solo init solo-test local --dev
         solo cluster setup
         solo node keys --tls-keys --gossip-keys
         solo network deploy
