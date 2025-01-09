@@ -1,0 +1,28 @@
+name: Test JSON-RPC-Relay
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test-relay:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run Hedera Solo with JSON-RPC-Relay
+        uses: ./.github/actions/hedera-solo-action
+        with:
+          installMirrorNode: false
+          installRelay: true
+          relayPort: 7546
+
+      - name: Test JSON-RPC-Relay
+        shell: bash
+        run: |
+          echo "Testing JSON-RPC-Relay..."
+          curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://localhost:7546
+          echo "JSON-RPC-Relay test completed."
