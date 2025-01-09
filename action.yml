@@ -73,11 +73,11 @@ runs:
     - name: Deploy Solo Test Network
       shell: bash
       run: |
-        solo init --dev
+        solo init --dev --cache-dir /home/runner/.solo
         solo cluster setup
         solo node keys --tls-keys --gossip-keys
         solo network deploy
-        solo node setup
+        solo node setup --set-alias node0
         solo node start
         kubectl port-forward svc/haproxy-node0-svc -n solo-test 50211:50211 &
 
