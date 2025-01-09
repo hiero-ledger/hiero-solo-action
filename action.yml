@@ -99,18 +99,9 @@ runs:
       shell: bash
       run: |
         echo "Installing JSON-RPC-Relay..."
-        solo relay deploy --namespace solo-test
-
-        echo "Checking JSON-RPC-Relay deployment..."
-        kubectl get pods -n solo-test -l app=json-rpc-relay
-
-        echo "Checking JSON-RPC-Relay service..."
-        kubectl get svc -n solo-test -l app=json-rpc-relay
-
+        solo relay deploy
         echo "Forwarding JSON-RPC-Relay endpoint..."
-        RELAY_SERVICE_NAME=$(kubectl get svc -n solo-test -l app=json-rpc-relay -o jsonpath='{.items[0].metadata.name}')
-        echo "Detected JSON-RPC-Relay service name: $RELAY_SERVICE_NAME"
-        kubectl port-forward svc/$RELAY_SERVICE_NAME -n solo-test ${{ inputs.relayPort }}:7546 &
+        kubectl port-forward svc/fullstack-deployment-json-rpc-relay -n solo-test ${{ inputs.relayPort }}:7546 &
         echo "JSON-RPC-Relay installed and forwarded successfully"
 
     - name: Create account
