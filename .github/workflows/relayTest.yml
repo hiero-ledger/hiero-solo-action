@@ -16,7 +16,7 @@ jobs:
       - name: Run Hedera Solo with JSON-RPC-Relay
         uses: ./
         with:
-          installMirrorNode: false
+          installMirrorNode: true
           installRelay: true
           relayPort: 7546
 
@@ -24,6 +24,6 @@ jobs:
         shell: bash
         run: |
           echo "Testing JSON-RPC-Relay..."
-          sleep 10
+          sleep 50
           curl -X POST --data '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}' http://localhost:7546
           echo "JSON-RPC-Relay test completed."
