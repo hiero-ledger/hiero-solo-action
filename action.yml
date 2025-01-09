@@ -73,7 +73,7 @@ runs:
     - name: Deploy Solo Test Network
       shell: bash
       run: |
-        solo init -i node0 -t ${{ inputs.hederaVersion }} -n solo-test --key-format pem --profile local
+        solo init --namespace solo-test --key-format pem --profile local --dev
         solo cluster setup
         solo node keys --tls-keys --gossip-keys
         solo network deploy
