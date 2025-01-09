@@ -99,9 +99,14 @@ runs:
       shell: bash
       run: |
         echo "Installing JSON-RPC-Relay..."
-        solo relay deploy
+        solo relay deploy \
+          --namespace solo-test \
+          --profile local \
+          --relay-release v0.48.0 \
+          --replica-count 1 \
+          --quiet-mode
         echo "Forwarding JSON-RPC-Relay endpoint..."
-        kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-test ${{ inputs.relayPort }}:7546 &
+        kubectl port-forward svc/json-rpc-relay -n solo-test ${{ inputs.relayPort }}:7546 &
         echo "JSON-RPC-Relay installed and forwarded successfully"
 
     - name: Create account
