@@ -98,8 +98,10 @@ runs:
       if: ${{ inputs.installRelay == 'true' }}
       shell: bash
       run: |
+        echo "Installing JSON-RPC-Relay..."
         solo relay deploy
-        kubectl port-forward svc/hedera-json-rpc-relay -n solo-test ${{ inputs.relayPort }}:7546 &
+        echo "JSON-RPC-Relay installed successfully"
+        kubectl port-forward svc/hedera-json-rpc-relay -n solo-test ${{ inputs.relayPort }}:46 &
 
     - name: Create account
       id: create-account
