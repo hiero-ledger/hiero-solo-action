@@ -15,7 +15,7 @@ inputs:
     required: false
     default: "8080"
   installRelay:
-    description: "Install JSON-RPC-Relay"
+    description: 'Install JSON-RPC-Relay'
     required: false
     default: false
     type: boolean
@@ -41,8 +41,6 @@ runs:
       run: |
         echo "installMirrorNode: ${{ inputs.installMirrorNode }}"
         echo "is installMirrorNode: ${{ inputs.installMirrorNode == 'true' }}"
-        echo "installRelay: ${{ inputs.installRelay }}"
-        echo "relayPort: ${{ inputs.relayPort }}"
 
     - name: Setup Java
       uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
@@ -101,7 +99,7 @@ runs:
         echo "Installing JSON-RPC-Relay..."
         solo relay deploy
         echo "JSON-RPC-Relay installed successfully"
-        kubectl port-forward svc/hedera-json-rpc-relay -n solo-test ${{ inputs.relayPort }}:46 &
+        kubectl port-forward svc/json-rpc-relay-svc -n solo-test ${{ inputs.relayPort }}:7546 &
 
     - name: Create account
       id: create-account
