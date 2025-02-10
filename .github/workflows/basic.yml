@@ -2,8 +2,8 @@ name: Validate Hedera Solo Outputs
 
 on:
   pull_request:
-    # branches:
-    #   - main
+    branches:
+      - main
 
 jobs:
   build:
