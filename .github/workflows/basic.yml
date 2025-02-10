@@ -9,20 +9,20 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Repo
+      - name: 🚀 Checkout Repo
         uses: actions/checkout@v4
 
-      - name: Setup Hedera Solo
+      - name: ⚙️ Setup Hedera Solo
         uses: ./
         id: solo
 
-      - name: Validate Hedera Solo Outputs
+      - name: ✅ Validate Hedera Solo Outputs
         run: |
           REQUIRED_OUTPUTS=("accountId" "privateKey" "publicKey")
           for output in "${REQUIRED_OUTPUTS[@]}"; do
             if [ -z "${{ steps.solo.outputs.$output }}" ]; then
-              echo "Error: $output is missing!"
+              echo "❌ Error: $output is missing!"
               exit 1
             fi
           done
-          echo "All outputs are valid."
+          echo "🎉 All outputs are valid!"
