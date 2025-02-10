@@ -20,7 +20,8 @@ jobs:
         run: |
           REQUIRED_OUTPUTS=("accountId" "privateKey" "publicKey")
           for output in "${REQUIRED_OUTPUTS[@]}"; do
-            if [ -z "${{ steps.solo.outputs.$output }}" ]; then
+            VALUE="$(eval echo \${{ steps.solo.outputs.${output} }})"
+            if [ -z "$VALUE" ]; then
               echo "❌ Error: $output is missing!"
               exit 1
             fi
