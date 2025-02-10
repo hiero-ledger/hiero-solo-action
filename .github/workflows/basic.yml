@@ -18,12 +18,16 @@ jobs:
 
       - name: ✅ Validate Hedera Solo Outputs
         run: |
-          REQUIRED_OUTPUTS=("accountId" "privateKey" "publicKey")
-          for output in "${REQUIRED_OUTPUTS[@]}"; do
-            VALUE="$(eval echo \${{ steps.solo.outputs.${output} }})"
-            if [ -z "$VALUE" ]; then
-              echo "❌ Error: $output is missing!"
-              exit 1
-            fi
-          done
+          if [ -z "${{ steps.solo.outputs.accountId }}" ]; then
+            echo "❌ Error: accountId is missing!"
+            exit 1
+          fi
+          if [ -z "${{ steps.solo.outputs.privateKey }}" ]; then
+            echo "❌ Error: privateKey is missing!"
+            exit 1
+          fi
+          if [ -z "${{ steps.solo.outputs.publicKey }}" ]; then
+            echo "❌ Error: publicKey is missing!"
+            exit 1
+          fi
           echo "🎉 All outputs are valid!"
