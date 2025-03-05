@@ -54,7 +54,7 @@ jobs:
 
       - name: Start Hedera Solo network with JSON-RPC-Relay
         run: |
-          solo init -i node0 -t v0.52.2 -n solo-test --key-format pem --profile local --chart-version v0.28.1
+          solo init -i node0 -t v0.52.2 -n solo-test --profile local --chart-version v0.28.1
           solo cluster setup
           solo node keys --tls-keys --gossip-keys
           solo network deploy
