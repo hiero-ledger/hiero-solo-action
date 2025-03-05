@@ -60,7 +60,7 @@ jobs:
           solo network deploy
           solo node setup
           solo node start
-          solo relay deploy --debug
+          solo relay deploy
 
       - name: Verify JSON-RPC-Relay Deployment
         run: |
