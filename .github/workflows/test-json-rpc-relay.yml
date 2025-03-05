@@ -34,9 +34,27 @@ jobs:
           pip3 install jq
           npm install -g @hashgraph/solo@0.28.1
 
+      - name: Setup Kind
+        uses: helm/kind-action@v1.10.0
+        with:
+          version: v0.21.0
+          kubectl_version: v1.28.6
+          cluster_name: solo-e2e
+          wait: 120s
+
+      - name: Verify Kubernetes Cluster
+        run: |
+          kubectl cluster-info
+          kubectl get nodes
+
+      - name: Install cert-manager
+        run: |
+          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
+          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=120s
+
       - name: Start Hedera Solo network with JSON-RPC-Relay
         run: |
-          solo init -i node0 -t v0.52.2 -n solo-test --key-format pem --profile local
+          solo init -i node0 -t v0.52.2 -n solo-test --key-format pem --profile local --chart-version v0.28.1
           solo cluster setup
           solo node keys --tls-keys --gossip-keys
           solo network deploy
@@ -54,7 +72,6 @@ jobs:
       - name: Test JSON-RPC-Relay functionality
         run: |
           echo "Testing JSON-RPC-Relay..."
-          # Test eth_chainId
           RESPONSE=$(curl -s -X POST -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":"2","method":"eth_chainId","params":[null]}' http://localhost:7546)
           echo "Response: $RESPONSE"
           if [[ $RESPONSE != *"\"result\":\"0x12a\""* ]]; then
@@ -62,7 +79,6 @@ jobs:
             exit 1
           fi
 
-          # Test eth_gasPrice
           RESPONSE=$(curl -s -X POST -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":"2","method":"eth_gasPrice","params":[null]}' http://localhost:7546)
           echo "Response: $RESPONSE"
           if [[ $RESPONSE != *"\"result\":\"0x"* ]]; then
