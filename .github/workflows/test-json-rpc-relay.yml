@@ -1,0 +1,80 @@
+name: Test JSON-RPC-Relay
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test-json-rpc-relay:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget python3 python3-pip
+          pip3 install jq
+          npm install -g @hashgraph/solo@0.28.1
+
+      - name: Start Hedera Solo network with JSON-RPC-Relay
+        run: |
+          solo init -i node0 -t v0.52.2 -n solo-test --key-format pem --profile local
+          solo cluster setup
+          solo node keys --tls-keys --gossip-keys
+          solo network deploy
+          solo node setup
+          solo node start
+          solo relay deploy
+          kubectl port-forward svc/json-rpc-relay -n solo-test 7546:7546 &
+          kubectl port-forward svc/haproxy-node0-svc -n solo-test 50211:50211 &
+
+      - name: Wait for JSON-RPC-Relay to be ready
+        run: |
+          echo "Waiting for JSON-RPC-Relay to start..."
+          sleep 30
+
+      - name: Test JSON-RPC-Relay functionality
+        run: |
+          echo "Testing JSON-RPC-Relay..."
+          # Test eth_chainId
+          RESPONSE=$(curl -s -X POST -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":"2","method":"eth_chainId","params":[null]}' http://localhost:7546)
+          echo "Response: $RESPONSE"
+          if [[ $RESPONSE != *"\"result\":\"0x12a\""* ]]; then
+            echo "eth_chainId test failed"
+            exit 1
+          fi
+
+          # Test eth_gasPrice
+          RESPONSE=$(curl -s -X POST -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":"2","method":"eth_gasPrice","params":[null]}' http://localhost:7546)
+          echo "Response: $RESPONSE"
+          if [[ $RESPONSE != *"\"result\":\"0x"* ]]; then
+            echo "eth_gasPrice test failed"
+            exit 1
+          fi
+
+          echo "All tests passed!"
+
+      - name: Clean up
+        run: |
+          echo "Cleaning up..."
+          solo network stop
+          solo network delete
+          kubectl delete namespace solo-test
