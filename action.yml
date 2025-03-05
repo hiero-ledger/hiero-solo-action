@@ -19,6 +19,10 @@ inputs:
     required: false
     default: false
     type: boolean
+  relayPort:
+    description: "Port for JSON-RPC-Relay"
+    required: false
+    default: "7546"
 outputs:
   accountId:
     description: "Hedera account id for a new account"
@@ -45,7 +49,7 @@ runs:
         java-version: 21
 
     - name: Setup Node
-      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
+      uses: actions/setup-node@1e60f620b9541d16bece96c5c65dc8ee9832be0b # v4.0.3
       with:
         node-version: 22
 
@@ -95,7 +99,7 @@ runs:
         echo "Installing JSON-RPC-Relay..."
         solo relay deploy
         echo "JSON-RPC-Relay installed successfully"
-
+        kubectl port-forward svc/json-rpc-relay -n solo-test ${{ inputs.relayPort }}:7546 &
 
     - name: Create account
       id: create-account
