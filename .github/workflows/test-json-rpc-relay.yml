@@ -21,6 +21,9 @@ jobs:
           installRelay: true
           relayPort: 7546
 
+      - name: Wait for Relay to be ready
+        run: sleep 15 
+
       - name: Test Relay Connection
         run: |
           echo "Testing JSON-RPC Relay..."
