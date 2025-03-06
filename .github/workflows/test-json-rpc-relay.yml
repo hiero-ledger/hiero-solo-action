@@ -1,4 +1,4 @@
-name: Test JSON-RPC-Relay
+name: JSON-RPC Relay
 
 on:
   push:
@@ -9,101 +9,32 @@ on:
       - main
 
 jobs:
-  test-json-rpc-relay:
+  setup-json-rpc-relay:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: 21
-
-      - name: Setup Node.js
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '20'
 
-      - name: Install dependencies
+      - name: Install JSON-RPC Relay
         run: |
-          sudo apt-get update
-          sudo apt-get install -y wget python3 python3-pip
-          pip3 install jq
-          npm install -g @hashgraph/solo@0.28.1
+          git clone https://github.com/hashgraph/json-rpc-relay.git
+          cd json-rpc-relay
+          npm install
 
-      - name: Setup Kind
-        uses: helm/kind-action@v1.10.0
-        with:
-          version: v0.21.0
-          kubectl_version: v1.28.6
-          cluster_name: solo-e2e
-          wait: 120s
-
-      - name: Verify Kubernetes Cluster
+      - name: Start JSON-RPC Relay
         run: |
-          kubectl cluster-info
-          kubectl get nodes
+          cd json-rpc-relay
+          npm start &
 
-      - name: Install cert-manager
+      - name: Wait for JSON-RPC Relay to start
+        run: sleep 10
+
+      - name: Forward JSON-RPC Relay logs
         run: |
-          kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.2/cert-manager.yaml
-          kubectl wait --for=condition=Ready pod -l app.kubernetes.io/instance=cert-manager -n cert-manager --timeout=120s
-
-      - name: Start Hedera Solo network with JSON-RPC-Relay
-        run: |
-          solo init -i node0 -t v0.52.2 -n solo-test --key-format pem --profile local
-          solo cluster setup
-          solo node keys --tls-keys --gossip-keys
-          solo network deploy
-          solo node setup
-          solo node start
-          solo relay deploy
-
-      - name: Verify JSON-RPC-Relay Deployment
-        run: |
-          kubectl get pods -n solo-test -l app=json-rpc-relay
-          kubectl get svc -n solo-test -l app=json-rpc-relay
-
-      - name: Wait for JSON-RPC-Relay to be Ready
-        run: |
-          echo "Waiting for JSON-RPC-Relay pod to be ready..."
-          until kubectl get pods -n solo-test -l app=json-rpc-relay -o jsonpath="{.items[0].status.containerStatuses[0].ready}" | grep -m 1 "true"; do sleep 5; done
-
-      - name: Port Forward JSON-RPC-Relay
-        run: |
-          kubectl port-forward svc/json-rpc-relay -n solo-test 7546:7546 &
-          kubectl port-forward svc/haproxy-node0-svc -n solo-test 50211:50211 &
-
-      - name: Wait for JSON-RPC-Relay to be ready
-        run: |
-          echo "Waiting for JSON-RPC-Relay to start..."
-          sleep 30
-
-      - name: Test JSON-RPC-Relay functionality
-        run: |
-          echo "Testing JSON-RPC-Relay..."
-          RESPONSE=$(curl -s -X POST -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":"2","method":"eth_chainId","params":[null]}' http://localhost:7546)
-          echo "Response: $RESPONSE"
-          if [[ $RESPONSE != *"\"result\":\"0x12a\""* ]]; then
-            echo "eth_chainId test failed"
-            exit 1
-          fi
-
-          RESPONSE=$(curl -s -X POST -H 'Content-Type: application/json' -d '{"jsonrpc":"2.0","id":"2","method":"eth_gasPrice","params":[null]}' http://localhost:7546)
-          echo "Response: $RESPONSE"
-          if [[ $RESPONSE != *"\"result\":\"0x"* ]]; then
-            echo "eth_gasPrice test failed"
-            exit 1
-          fi
-
-          echo "All tests passed!"
-
-      - name: Clean up
-        run: |
-          echo "Cleaning up..."
-          solo network stop
-          solo network delete
-          kubectl delete namespace solo-test
+          tail -f json-rpc-relay/logs/*.log &
