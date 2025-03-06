@@ -70,7 +70,7 @@ jobs:
       - name: Wait for JSON-RPC-Relay to be Ready
         run: |
           echo "Waiting for JSON-RPC-Relay pod to be ready..."
-          kubectl wait --for=condition=Ready pod -l app=json-rpc-relay -n solo-test --timeout=120s
+          until kubectl get pods -n solo-test -l app=json-rpc-relay -o jsonpath="{.items[0].status.containerStatuses[0].ready}" | grep -m 1 "true"; do sleep 5; done
 
       - name: Port Forward JSON-RPC-Relay
         run: |
