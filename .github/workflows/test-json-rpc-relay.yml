@@ -9,32 +9,21 @@ on:
       - main
 
 jobs:
-  setup-json-rpc-relay:
+  test-relay:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Run Hedera Solo with Relay
+        uses: ./
         with:
-          node-version: '20'
+          installRelay: true
+          relayPort: 7546
 
-      - name: Install JSON-RPC Relay
+      - name: Test Relay Connection
         run: |
-          git clone https://github.com/hashgraph/json-rpc-relay.git
-          cd json-rpc-relay
-          npm install
-
-      - name: Start JSON-RPC Relay
-        run: |
-          cd json-rpc-relay
-          npm start &
-
-      - name: Wait for JSON-RPC Relay to start
-        run: sleep 10
-
-      - name: Forward JSON-RPC Relay logs
-        run: |
-          tail -f json-rpc-relay/logs/*.log &
+          echo "Testing JSON-RPC Relay..."
+          curl -X POST http://localhost:7546 \
+            -H "Content-Type: application/json" \
+            -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
