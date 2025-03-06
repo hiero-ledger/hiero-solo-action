@@ -21,12 +21,17 @@ jobs:
           installRelay: true
           relayPort: 7546
 
-      - name: Wait for Relay to be ready
-        run: sleep 15 
+      - name: Verify Service Endpoint
+        run: |
+          echo "Checking service existence..."
+          kubectl get svc hedera-json-rpc-relay -n solo-test
+          
+          echo "Checking endpoints..."
+          kubectl get endpoints hedera-json-rpc-relay -n solo-test -o yaml
 
       - name: Test Relay Connection
         run: |
           echo "Testing JSON-RPC Relay..."
-          curl -X POST http://localhost:7546 \
+          curl -v -X POST http://localhost:7546 \
             -H "Content-Type: application/json" \
             -d '{"jsonrpc":"2.0","method":"eth_blockNumber","params":[],"id":1}'
