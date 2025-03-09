@@ -18,8 +18,19 @@ jobs:
           repository: hashgraph/hedera-json-rpc-relay
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create .env
-        run: echo "${{ secrets.ENV_FILE }}" > .env
+      - name: Create .env File
+        env:
+          CHAIN_ID: 0x12a
+          MIRROR_NODE_URL: https://testnet.hashio.io/api
+          HEDERA_NETWORK: testnet
+          OPERATOR_ID_MAIN: ${{ secrets.OPERATOR_ID }}
+          OPERATOR_KEY_MAIN: ${{ secrets.OPERATOR_KEY }}
+        run: |
+          echo "CHAIN_ID=${CHAIN_ID}" > .env
+          echo "MIRROR_NODE_URL=${MIRROR_NODE_URL}" >> .env
+          echo "HEDERA_NETWORK=${HEDERA_NETWORK}" >> .env
+          echo "OPERATOR_ID_MAIN=${OPERATOR_ID_MAIN}" >> .env
+          echo "OPERATOR_KEY_MAIN=${OPERATOR_KEY_MAIN}" >> .env
 
       - name: Install Dependencies
         run: npm install
