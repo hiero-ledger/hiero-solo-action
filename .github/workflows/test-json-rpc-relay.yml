@@ -18,6 +18,9 @@ jobs:
           repository: hashgraph/hedera-json-rpc-relay
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Create .env
+        run: echo "${{ secrets.ENV_FILE }}" > .env
+
       - name: Install Dependencies
         run: npm install
 
