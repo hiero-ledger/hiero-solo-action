@@ -62,14 +62,20 @@ runs:
       with:
         python-version: "3.10"
 
-    - name: Setup Kind
-      uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
-      with:
-        verbosity: 100
-        version: v1.29.1
-        kubectl_version: v1.27.3
-        cluster_name: solo-e2e
-        wait: 120s
+    - name: Setup Helm
+        uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4.3.0
+        with:
+          version: "v3.12.3" # helm version
+
+      - name: Setup Kind
+        uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
+        with:
+          install_only: true
+          node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
+          version: v0.26.0
+          kubectl_version: v1.31.4
+          verbosity: 3
+          wait: 120s
 
     - name: Install Solo
       shell: bash
