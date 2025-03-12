@@ -65,6 +65,7 @@ runs:
     - name: Setup Kind
       uses: helm/kind-action@v1.12.0
       with:
+        verbosity: 100
         version: v1.29.1
         kubectl_version: v1.27.3
         cluster_name: solo-e2e
