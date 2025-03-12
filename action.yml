@@ -88,12 +88,11 @@ runs:
         export SOLO_NAMESPACE=solo-e2e
         export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster-setup
         export SOLO_DEVELOPMENT=solo-deployment
-        kind delete cluster -n "${SOLO_CLUSTER_NAME}"
-        kind create cluster -n "${SOLO_CLUSTER_NAME}"
+        kind create cluster -n "solo-cluster"
         echo "-------------------1"
         solo init
         echo "-------------------2"
-        solo cluster-ref setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}"
+        solo cluster-ref setup -s "solo-cluster-setup"
         echo "-------------------3" 
         solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --email john@doe.com
         echo "-------------------4"
