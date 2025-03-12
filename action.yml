@@ -86,25 +86,19 @@ runs:
     - name: Deploy Solo Test Network
       shell: bash
       run: |
+         # see https://github.com/hashgraph/solo/blob/v0.35.1/docs/content/User/StepByStepGuide.md
          export SOLO_CLUSTER_NAME=solo-cluster
          export SOLO_NAMESPACE=solo
          export SOLO_DEPLOYMENT=solo-deployment
          export SOLO_EMAIL=solo-action@hiero.org
          kind create cluster -n "${SOLO_CLUSTER_NAME}"
          solo init
-         echo "-------------------------- 1"
-         solo deployment create -i node1 --namespace "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"
-         echo "-------------------------- 1.5"
-         solo node keys --gossip-keys --tls-keys -i node1 -q
-         echo "-------------------------- 2"
-         solo cluster setup -s "${SOLO_CLUSTER_NAME}" -q        
-         echo "-------------------------- 3"
-         solo network deploy -i node1 --deployment "${SOLO_DEPLOYMENT}"
-         echo "-------------------------- 4"
-         solo node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
-         echo "-------------------------- 5"
-         solo node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
-
+         solo deployment create --node-aliases node1 --namespace "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"
+         solo node keys --node-aliases node1 --gossip-keys --tls-keys --quiet-mode
+         solo cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_NAME}" --quiet-mode    
+         solo network deploy --node-aliases node1 --deployment "${SOLO_DEPLOYMENT}"
+         solo node setup --node-aliases node1 --deployment "${SOLO_DEPLOYMENT}"
+         solo node start --node-aliases node1 --deployment "${SOLO_DEPLOYMENT}"
 
     - name: Create account
       id: create-account
