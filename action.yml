@@ -89,17 +89,18 @@ runs:
          export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster-setup
          export SOLO_DEVELOPMENT=solo-deployment
          kind create cluster -n "solo-cluster"
-         echo "-------------------1"
          solo init
-         echo "-------------------2"
+         echo "-------------------------- 1"
          solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" -q
-         echo "-------------------3" 
-         solo cluster connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --email john@doe.com
-         echo "-------------------4"
-         solo deployment create --namespace "${SOLO_NAMESPACE}" --deployment "${SOLO_DEVELOPMENT}"
-         echo "-------------------5"
-         solo deployment add-cluster --deployment "${SOLO_DEVELOPMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 2
-         echo "-------------------6"
+         echo "-------------------------- 2"
+         solo node keys --gossip-keys --tls-keys -i node1
+         echo "-------------------------- 3"
+         solo network deploy -n "${SOLO_NAMESPACE}" -i node1
+         echo "-------------------------- 4"
+         solo node setup     -n "${SOLO_NAMESPACE}" -i node1
+         echo "-------------------------- 5"
+         solo node start     -n "${SOLO_NAMESPACE}" -i node1
+
 
     - name: Create account
       id: create-account
