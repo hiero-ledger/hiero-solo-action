@@ -87,16 +87,15 @@ runs:
       shell: bash
       run: |
          export SOLO_CLUSTER_NAME=solo-cluster
-         export SOLO_NAMESPACE=solo-e2e
-         export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster-setup
+         export SOLO_NAMESPACE=solo
          export SOLO_DEPLOYMENT=solo-deployment
          export SOLO_EMAIL=solo-action@hiero.org
          kind create cluster -n "${SOLO_CLUSTER_NAME}"
          solo init
          echo "-------------------------- 1"
-         solo deployment create -n "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_SETUP_NAMESPACE} --deployment "${SOLO_DEPLOYMENT}"
+         solo deployment create --namespace "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"
          echo "-------------------------- 1.5"
-         solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" -q
+         solo cluster setup -s "${SOLO_CLUSTER_NAME}" -q
          echo "-------------------------- 2"
          solo node keys --gossip-keys --tls-keys -i node1,node2
          echo "-------------------------- 3"
