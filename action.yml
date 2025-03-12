@@ -92,7 +92,7 @@ runs:
         echo "-------------------1"
         solo init
         echo "-------------------2"
-        solo cluster-ref setup -s "solo-cluster-setup"
+        solo -- cluster-ref setup --cluster-setup-namespace "solo-cluster-setup"
         echo "-------------------3" 
         solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --email john@doe.com
         echo "-------------------4"
