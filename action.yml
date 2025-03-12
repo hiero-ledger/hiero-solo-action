@@ -90,9 +90,9 @@ runs:
         export SOLO_DEVELOPMENT=solo-deployment
         kind create cluster -n "solo-cluster"
         echo "-------------------1"
-        solo init
+        solo init --dev
         echo "-------------------2"
-        solo -- cluster-ref setup --cluster-setup-namespace "solo-cluster-setup"
+        solo cluster-ref setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" --dev -q
         echo "-------------------3" 
         solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --email john@doe.com
         echo "-------------------4"
