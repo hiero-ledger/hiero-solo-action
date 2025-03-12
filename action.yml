@@ -101,9 +101,10 @@ runs:
          echo "-------------------------- 3"
          solo network deploy -i node1 --deployment "${SOLO_DEPLOYMENT}"
          echo "-------------------------- 4"
-         solo node setup     -n "${SOLO_NAMESPACE}" -i node1 -q
+         solo node setup -i node1 --deployment "${SOLO_DEPLOYMENT}"
          echo "-------------------------- 5"
-         solo node start     -n "${SOLO_NAMESPACE}" -i node1 -q
+         solo node start -i node1 --deployment "${SOLO_DEPLOYMENT}"
+
 
     - name: Create account
       id: create-account
