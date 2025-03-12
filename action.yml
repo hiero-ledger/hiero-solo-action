@@ -88,18 +88,18 @@ runs:
          export SOLO_NAMESPACE=solo-e2e
          export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster-setup
          export SOLO_DEVELOPMENT=solo-deployment
-         kind create cluster -n "solo-cluster"
+         kind create cluster -n "${SOLO_CLUSTER_NAME}"
          solo init
          echo "-------------------------- 1"
          solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" -q
          echo "-------------------------- 2"
-         solo node keys --gossip-keys --tls-keys -i node1
+         solo node keys --gossip-keys --tls-keys -i node1,node2
          echo "-------------------------- 3"
-         solo network deploy -n "${SOLO_NAMESPACE}" -i node1
+         solo network deploy -n "${SOLO_NAMESPACE}" -i node1,node2
          echo "-------------------------- 4"
-         solo node setup     -n "${SOLO_NAMESPACE}" -i node1
+         solo node setup     -n "${SOLO_NAMESPACE}" -i node1,node2
          echo "-------------------------- 5"
-         solo node start     -n "${SOLO_NAMESPACE}" -i node1
+         solo node start     -n "${SOLO_NAMESPACE}" -i node1,node2
 
 
     - name: Create account
