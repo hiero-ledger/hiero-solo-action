@@ -9,7 +9,7 @@ inputs:
   hederaVersion:
     description: "Version of Hedera to use. Defaults to Mainnet version."
     required: false
-    default: "v0.52.2"
+    default: "v0.58.1"
   mirrorNodePort:
     description: "Port for Mirror Node"
     required: false
@@ -65,14 +65,14 @@ runs:
     - name: Setup Kind
       uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
       with:
-        version: v0.21.0
-        kubectl_version: v1.28.6
+        version: v1.29.1
+        kubectl_version: v1.27.3
         cluster_name: solo-e2e
         wait: 120s
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@0.28.1
+      run: npm install -g @hashgraph/solo@0.35.1
 
     - name: Deploy Solo Test Network
       shell: bash
