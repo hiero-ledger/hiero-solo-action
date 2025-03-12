@@ -62,44 +62,42 @@ runs:
       with:
         python-version: "3.10"
 
-    - name: Setup Kind
-      uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
+    - name: Setup Helm
+      uses: azure/setup-helm@b9e51907a09c216f16ebe8536097933489208112 # v4.3.0
       with:
-        version: v0.21.0
-        kubectl_version: v1.28.6
-        cluster_name: solo-e2e
+        version: "v3.12.3" # helm version
+
+    - name: Setup Kind
+      uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
+      with:
+        install_only: true
+        node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
+        version: v0.26.0
+        kubectl_version: v1.31.4
+        verbosity: 3
         wait: 120s
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@0.28.1
+      run: npm install -g @hashgraph/solo@0.35.1
 
     - name: Deploy Solo Test Network
       shell: bash
       run: |
-        solo init -i node0 -t ${{ inputs.hederaVersion }} -n solo-test --key-format pem --profile local
-        solo cluster setup
-        solo node keys --tls-keys --gossip-keys
-        solo network deploy
-        solo node setup
-        solo node start
-        kubectl port-forward svc/haproxy-node0-svc -n solo-test 50211:50211 &
-
-    - name: Deploy MirrorNode
-      if: ${{ inputs.installMirrorNode == 'true' }} # see https://github.com/actions/runner/issues/2238
-      shell: bash
-      run: |
-        solo mirror-node deploy
-        kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-test ${{ inputs.mirrorNodePort }}:80 &
-
-    - name: Deploy JSON-RPC-Relay
-      if: ${{ inputs.installRelay == 'true' }}
-      shell: bash
-      run: |
-        echo "Installing JSON-RPC-Relay..."
-        solo relay deploy
-        echo "JSON-RPC-Relay installed successfully"
-        kubectl port-forward svc/json-rpc-relay -n solo-test ${{ inputs.relayPort }}:7546 &
+         export SOLO_CLUSTER_NAME=solo-cluster
+         export SOLO_NAMESPACE=solo-e2e
+         export SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster-setup
+         export SOLO_DEVELOPMENT=solo-deployment
+         kind create cluster -n "solo-cluster"
+         echo "-------------------1"
+         solo init
+         echo "-------------------2"
+         solo cluster setup -s "${SOLO_CLUSTER_SETUP_NAMESPACE}" -q
+         echo "-------------------3" 
+         solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --email john@doe.com
+         echo "-------------------4"
+         solo deployment create --namespace "${SOLO_NAMESPACE}" --deployment "${SOLO_DEVELOPMENT}"
+         solo deployment add-cluster --deployment "${SOLO_DEVELOPMENT}" --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes 2
 
     - name: Create account
       id: create-account
