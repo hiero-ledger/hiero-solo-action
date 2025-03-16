@@ -9,7 +9,7 @@ inputs:
   hederaVersion:
     description: "Version of Hedera to use. Defaults to Mainnet version."
     required: false
-    default: "v0.52.2"
+    default: "v0.58.1"
   mirrorNodePort:
     description: "Port for Mirror Node"
     required: false
