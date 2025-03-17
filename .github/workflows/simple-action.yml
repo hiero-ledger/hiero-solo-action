@@ -1,0 +1,47 @@
+name: Run Solo Network on PR
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  run-solo:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y curl git
+
+      - name: Install Kind (Kubernetes in Docker)
+        run: |
+          curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
+          chmod +x ./kind
+          sudo mv ./kind /usr/local/bin/kind
+
+      - name: Install Task tool
+        run: |
+          sh -c "$(curl --location https://taskfile.dev/install.sh)"
+          sudo mv ./bin/task /usr/local/bin/task
+
+      - name: Clone Solo repository
+        run: |
+          git clone https://github.com/hashgraph/solo.git
+          cd solo
+          task
+
+      - name: Verify Solo network is running
+        run: |
+          sleep 10  # Give some time for the network to start
+          docker ps
+
+      - name: Stop Solo network
+         if: always()
+         run: |
+           cd solo
+           task clean
