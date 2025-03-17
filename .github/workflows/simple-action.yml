@@ -41,7 +41,7 @@ jobs:
           docker ps
 
       - name: Stop Solo network
-         if: always()
-         run: |
-           cd solo
-           task clean
+        if: always()
+        run: |
+          cd solo
+          task clean
