@@ -1,125 +1,86 @@
-# name: "Hiero Solo Action"
-# description: "Run a Hiero based network by using the solo tool"
-# inputs:
-#   installMirrorNode:
-#     description: "Defines if a mirror node should be installed"
-#     required: true
-#     default: false
-#     type: boolean
-#   hederaVersion:
-#     description: "Version of Hedera to use. Defaults to Mainnet version."
-#     required: false
-#     default: "v0.52.2"
-#   mirrorNodePort:
-#     description: "Port for Mirror Node"
-#     required: false
-#     default: "8080"
-#   installRelay:
-#     description: 'Install JSON-RPC-Relay'
-#     required: false
-#     default: false
-#     type: boolean
-#   relayPort:
-#     description: "Port for JSON-RPC-Relay"
-#     required: false
-#     default: "7546"
-# outputs:
-#   accountId:
-#     description: "Hedera account id for a new account"
-#     value: ${{ steps.create-account.outputs.accountId }}
-#   publicKey:
-#     description: "Hedera public key for the new account"
-#     value: ${{ steps.create-account.outputs.publicKey }}
-#   privateKey:
-#     description: "Hedera private key for the new account"
-#     value: ${{ steps.create-account.outputs.privateKey }}
-# runs:
-#   using: "composite"
-#   steps:
-#     - name: print inputs
-#       shell: bash
-#       run: |
-#         echo "installMirrorNode: ${{ inputs.installMirrorNode }}"
-#         echo "is installMirrorNode: ${{ inputs.installMirrorNode == 'true' }}"
+name: "Hiero Solo Action"
+description: "Run a Hiero-based network using the Task tool"
+inputs:
+  installMirrorNode:
+    description: "Defines if a mirror node should be installed"
+    required: true
+    default: false
+    type: boolean
+  hederaVersion:
+    description: "Version of Hedera to use. Defaults to Mainnet version."
+    required: false
+    default: "v0.52.2"
+  mirrorNodePort:
+    description: "Port for Mirror Node"
+    required: false
+    default: "8080"
+  installRelay:
+    description: "Install JSON-RPC-Relay"
+    required: false
+    default: false
+    type: boolean
+  relayPort:
+    description: "Port for JSON-RPC-Relay"
+    required: false
+    default: "7546"
+runs:
+  using: "composite"
+  steps:
+    - name: Print inputs
+      shell: bash
+      run: |
+        echo "installMirrorNode: ${{ inputs.installMirrorNode }}"
+        echo "installRelay: ${{ inputs.installRelay }}"
 
-#     - name: Setup Java
-#       uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
-#       with:
-#         distribution: temurin
-#         java-version: 21
+    - name: Setup prerequisites
+      shell: bash
+      run: |
+        sudo apt-get update && sudo apt-get install -y wget
 
-#     - name: Setup Node
-#       uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
-#       with:
-#         node-version: 22
+    - name: Install Kind (Kubernetes in Docker)
+      uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde
+      with:
+        version: v0.21.0
+        kubectl_version: v1.28.6
+        cluster_name: solo-network
+        wait: 120s
 
-#     - name: Install WGet CLI
-#       shell: bash
-#       run: sudo apt-get update && sudo apt-get install -y wget
+    - name: Install Task tool
+      shell: bash
+      run: |
+        curl -sSL https://taskfile.dev/install.sh | sh
+        sudo mv ./task /usr/local/bin/
 
-#     - name: Install Python
-#       uses: actions/setup-python@v5
-#       with:
-#         python-version: "3.10"
+    - name: Clone Solo repository
+      shell: bash
+      run: git clone https://github.com/hashgraph/solo.git && cd solo
 
-#     - name: Setup Kind
-#       uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
-#       with:
-#         version: v0.21.0
-#         kubectl_version: v1.28.6
-#         cluster_name: solo-e2e
-#         wait: 120s
+    - name: Install dependencies and build Solo
+      shell: bash
+      run: cd solo && task
 
-#     - name: Install Solo
-#       shell: bash
-#       run: npm install -g @hashgraph/solo@0.28.1
+    - name: Start Solo network
+      shell: bash
+      run: |
+        cd solo
+        if [ "${{ inputs.installRelay }}" == "true" ]; then
+          task default-with-relay
+        elif [ "${{ inputs.installMirrorNode }}" == "true" ]; then
+          task default-with-mirror
+        else
+          task
+        fi
 
-#     - name: Deploy Solo Test Network
-#       shell: bash
-#       run: |
-#         solo init -i node0 -t ${{ inputs.hederaVersion }} -n solo-test --key-format pem --profile local
-#         solo cluster setup
-#         solo node keys --tls-keys --gossip-keys
-#         solo network deploy
-#         solo node setup
-#         solo node start
-#         kubectl port-forward svc/haproxy-node0-svc -n solo-test 50211:50211 &
+    - name: Expose Hedera Explorer if Mirror Node or Relay is enabled
+      if: ${{ inputs.installMirrorNode == 'true' || inputs.installRelay == 'true' }}
+      shell: bash
+      run: |
+        echo "Hedera Explorer is available at http://localhost:8080"
 
-#     - name: Deploy MirrorNode
-#       if: ${{ inputs.installMirrorNode == 'true' }} # see https://github.com/actions/runner/issues/2238
-#       shell: bash
-#       run: |
-#         solo mirror-node deploy
-#         kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-test ${{ inputs.mirrorNodePort }}:80 &
+    - name: Stop Solo network
+      shell: bash
+      run: cd solo && task clean
 
-#     - name: Deploy JSON-RPC-Relay
-#       if: ${{ inputs.installRelay == 'true' }}
-#       shell: bash
-#       run: |
-#         echo "Installing JSON-RPC-Relay..."
-#         solo relay deploy
-#         echo "JSON-RPC-Relay installed successfully"
-#         kubectl port-forward svc/json-rpc-relay -n solo-test ${{ inputs.relayPort }}:7546 &
-
-#     - name: Create account
-#       id: create-account
-#       shell: bash
-#       env:
-#         GITHUB_ACTION_PATH: ${{ github.action_path }}
-#       run: |
-#         JSON=$(solo account create | python3 $GITHUB_ACTION_PATH/extractAccountAsJson.py)
-#         export HEDERA_ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
-#         export HEDERA_ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
-#         export HEDERA_ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$HEDERA_ACCOUNT_ID -n solo-test -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-#         solo account update --account-id $HEDERA_ACCOUNT_ID --hbar-amount 10000000
-#         echo "accountId=$HEDERA_ACCOUNT_ID"
-#         echo "publicKey=$HEDERA_ACCOUNT_PUBLIC_KEY"
-#         echo "privateKey=$HEDERA_ACCOUNT_PRIVATE_KEY"
-#         echo "accountId=$HEDERA_ACCOUNT_ID" >> $GITHUB_OUTPUT
-#         echo "publicKey=$HEDERA_ACCOUNT_PUBLIC_KEY" >> $GITHUB_OUTPUT
-#         echo "privateKey=$HEDERA_ACCOUNT_PRIVATE_KEY" >> $GITHUB_OUTPUT
-
-# # Ref: https://haya14busa.github.io/github-action-brandings/
-# branding:
-#   icon: "share-2"
-#   color: "black"
+branding:
+  icon: "share-2"
+  color: "black"
