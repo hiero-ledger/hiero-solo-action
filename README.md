@@ -18,7 +18,9 @@ The GitHub action takes the following inputs:
 | `installMirrorNode` |  false    | `false`   | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:8080`. |
 | `installRelay` |  false    | `false`   | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process. |
 | `hederaVersion`|  false    | `v0.52.2` | Hedera network version to use (This is the version of the Hiero consensus node) |
-| `mirrorNodePort`|  false    | `8080` | Port for Mirror Node |
+| `relayPort`|  false    | `7546` | Port for JSON-RPC-Relay |
+| `mirrorNodePortRest`|  false    | `8080` | Port for Mirror Node REST API |
+| `mirrorNodePortGrpc`|  false    | `5600` | Port for Mirror Node gRPC |
 
 
 ## Outputs

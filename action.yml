@@ -10,10 +10,14 @@ inputs:
     description: "Version of Hedera to use. Defaults to Mainnet version."
     required: false
     default: "v0.52.2"
-  mirrorNodePort:
-    description: "Port for Mirror Node"
+  mirrorNodePortRest:
+    description: "Port for Mirror Node REST API"
     required: false
     default: "8080"
+  mirrorNodePortGrpc:
+    description: "Port for Mirror Node gRPC"
+    required: false
+    default: "5600"
   installRelay:
     description: 'Install JSON-RPC-Relay'
     required: false
@@ -90,8 +94,8 @@ runs:
       shell: bash
       run: |
         solo mirror-node deploy
-        kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-test ${{ inputs.mirrorNodePort }}:80 &
-        kubectl port-forward svc/fullstack-deployment-grpc -n solo-test 5600:5600 &
+        kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-test ${{ inputs.mirrorNodePortRest }}:80 &
+        kubectl port-forward svc/fullstack-deployment-grpc -n solo-test ${{ inputs.mirrorNodePortGrpc }}:5600 &
 
     - name: Deploy JSON-RPC-Relay
       if: ${{ inputs.installRelay == 'true' }}
