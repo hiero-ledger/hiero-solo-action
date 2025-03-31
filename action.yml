@@ -91,6 +91,7 @@ runs:
       run: |
         solo mirror-node deploy
         kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-test ${{ inputs.mirrorNodePort }}:80 &
+        kubectl port-forward svc/fullstack-deployment-grpc -n solo-test 5600:5600 &
 
     - name: Deploy JSON-RPC-Relay
       if: ${{ inputs.installRelay == 'true' }}
