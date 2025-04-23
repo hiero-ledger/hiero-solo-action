@@ -39,7 +39,7 @@ env:
   kindVersion: v0.26.0
   kubectlVersion: v1.31.4
   nodeVersion: 22
-  helmVersion: "v3.12.3"
+  helmVersion: v3.12.3
   javaVersion: 21
   pythonVersion: "3.10"
 
@@ -77,21 +77,21 @@ runs:
     - name: Setup Helm
       uses: azure/setup-helm@v4.3.0
       with:
-        version: "v3.12.3" # helm version
+        version: ${{ env.helmVersion }}
 
     - name: Setup Kind
       uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
       with:
         install_only: true
         node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
-        version: ${{env.kindVersion}}
-        kubectl_version: ${{env.kubectlVersion}}
+        version: ${{ env.kindVersion }}
+        kubectl_version: ${{ env.kubectlVersion }}
         verbosity: 3
         wait: 120s
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@0.35.2
+      run: npm install -g @hashgraph/solo@${{ env.soloVersion }}
 
     - name: Deploy Solo Test Network
       shell: bash
