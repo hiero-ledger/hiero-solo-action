@@ -33,6 +33,16 @@ outputs:
   privateKey:
     description: "Hedera private key for the new account"
     value: ${{ steps.create-account.outputs.privateKey }}
+
+env:
+  soloVersion: "0.35.2"
+  kindVersion: "v0.26.0"
+  kubectlVersion: "v1.31.4"
+  nodeVersion: "22"
+  helmVersion: "v3.12.3"
+  javaVersion: "21"
+  pythonVersion: "3.10"
+
 runs:
   using: "composite"
   steps:
@@ -46,12 +56,12 @@ runs:
       uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
       with:
         distribution: temurin
-        java-version: 21
+        java-version: ${{ env.javaVersion }}
 
     - name: Setup Node
       uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
       with:
-        node-version: 22
+        node-version: ${{ env.nodeVersion }}
 
     - name: Install WGet CLI
       shell: bash
@@ -60,7 +70,7 @@ runs:
     - name: Install Python
       uses: actions/setup-python@v5
       with:
-        python-version: "3.10"
+        python-version: ${{ env.pythonVersion }}
 
 # iusing versions as defined in https://github.com/hashgraph/solo/blob/v0.35.1/.github/workflows/flow-task-test.yaml
 
@@ -74,8 +84,8 @@ runs:
       with:
         install_only: true
         node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
-        version: v0.26.0
-        kubectl_version: v1.31.4
+        version: ${{env.kindVersion}}
+        kubectl_version: ${{env.kubectlVersion}}
         verbosity: 3
         wait: 120s
 
