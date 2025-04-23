@@ -35,18 +35,18 @@ outputs:
     value: ${{ steps.create-account.outputs.privateKey }}
 
 env:
-  soloVersion: 0.35.2
-  kindVersion: v0.26.0
-  kubectlVersion: v1.31.4
-  nodeVersion: 22
-  helmVersion: v3.12.3
-  javaVersion: 21
-  pythonVersion: "3.10"
+  SOLO_VERSION: 0.35.2
+  KIND_VERSION: v0.26.0
+  KUBECTL_VERSION: v1.31.4
+  NODE_VERSION: 22
+  HELM_VERSION: v3.12.3
+  JAVA_VERSION: 21
+  PYTHON_VERSION: "3.10"
 
 runs:
   using: "composite"
   steps:
-    - name: print inputs
+    - name: Print inputs
       shell: bash
       run: |
         echo "installMirrorNode: ${{ inputs.installMirrorNode }}"
@@ -56,12 +56,13 @@ runs:
       uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
       with:
         distribution: temurin
-        java-version: ${{ env.javaVersion }}
+        java-version: ${{ env.JAVA_VERSION }}
+        check-latest: false
 
     - name: Setup Node
       uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
       with:
-        node-version: ${{ env.nodeVersion }}
+        node-version: ${{ env.NODE_VERSION }}
 
     - name: Install WGet CLI
       shell: bash
@@ -70,45 +71,45 @@ runs:
     - name: Install Python
       uses: actions/setup-python@v5
       with:
-        python-version: ${{ env.pythonVersion }}
+        python-version: ${{ env.PYTHON_VERSION }}
 
 # iusing versions as defined in https://github.com/hashgraph/solo/blob/v0.35.1/.github/workflows/flow-task-test.yaml
 
     - name: Setup Helm
       uses: azure/setup-helm@v4.3.0
       with:
-        version: ${{ env.helmVersion }}
+        version: ${{ env.HELM_VERSION }}
 
     - name: Setup Kind
       uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
       with:
         install_only: true
         node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
-        version: ${{ env.kindVersion }}
-        kubectl_version: ${{ env.kubectlVersion }}
+        version: ${{ env.KIND_VERSION }}
+        kubectl_version: ${{ env.KUBECTL_VERSION }}
         verbosity: 3
         wait: 120s
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@${{ env.soloVersion }}
+      run: npm install -g @hashgraph/solo@${{ env.SOLO_VERSION }}
 
     - name: Deploy Solo Test Network
       shell: bash
       run: |
-         # see https://github.com/hashgraph/solo/blob/v0.35.1/docs/content/User/StepByStepGuide.md
-         export SOLO_CLUSTER_NAME=solo-cluster
-         export SOLO_NAMESPACE=solo
-         export SOLO_DEPLOYMENT=solo-deployment
-         export SOLO_EMAIL=solo-action@hiero.org
-         kind create cluster -n "${SOLO_CLUSTER_NAME}"
-         solo init
-         solo deployment create --node-aliases node1 --namespace "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"
-         solo node keys --node-aliases node1 --gossip-keys --tls-keys --quiet-mode
-         solo cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_NAME}" --quiet-mode    
-         solo network deploy --node-aliases node1 --deployment "${SOLO_DEPLOYMENT}"
-         solo node setup --node-aliases node1 --deployment "${SOLO_DEPLOYMENT}"
-         solo node start --node-aliases node1 --deployment "${SOLO_DEPLOYMENT}"
+        # see https://github.com/hashgraph/solo/blob/v0.35.1/docs/content/User/StepByStepGuide.md
+        export SOLO_CLUSTER_NAME=solo-cluster
+        export SOLO_NAMESPACE=solo
+        export SOLO_DEPLOYMENT=solo-deployment
+        export SOLO_EMAIL=solo-action@hiero.org
+        kind create cluster -n "${SOLO_CLUSTER_NAME}"
+        solo init
+        solo deployment create --node-aliases node1 --namespace "${SOLO_NAMESPACE}" --context kind-${SOLO_CLUSTER_NAME} --email "${SOLO_EMAIL}" --deployment-clusters kind-${SOLO_CLUSTER_NAME} --deployment "${SOLO_DEPLOYMENT}"
+        solo node keys --node-aliases node1 --gossip-keys --tls-keys --quiet-mode
+        solo cluster setup --cluster-setup-namespace "${SOLO_CLUSTER_NAME}" --quiet-mode    
+        solo network deploy --node-aliases node1 --deployment "${SOLO_DEPLOYMENT}"
+        solo node setup --node-aliases node1 --deployment "${SOLO_DEPLOYMENT}"
+        solo node start --node-aliases node1 --deployment "${SOLO_DEPLOYMENT}"
 
     - name: Create account
       id: create-account
