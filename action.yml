@@ -161,7 +161,7 @@ runs:
         if kubectl get svc relay-node1-node2-node3-hedera-json-rpc-relay -n $SOLO_NAMESPACE >/dev/null 2>&1; then
           kubectl port-forward svc/relay-node1-node2-node3-hedera-json-rpc-relay -n $SOLO_NAMESPACE ${{ inputs.relayPort }}:7546 &
         else
-          echo "JSON-RPC-Relay service relay-node1-node2-node3-hedera-json-rpc-relay not found, skipping port-forward"
+          echo "JSON-RPC-Relay service relay-node1-node2-node3-hedera-json-rpc-relay not found, Skipping port-forward"
         fi
 
     - name: Create account
