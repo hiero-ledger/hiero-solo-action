@@ -9,7 +9,7 @@ inputs:
   hederaVersion:
     description: "Version of Hedera to use. Defaults to Mainnet version."
     required: false
-    default: "v0.52.2"
+    default: "v0.58.10"
   mirrorNodePort:
     description: "Port for Mirror Node"
     required: false
@@ -23,6 +23,10 @@ inputs:
     description: "Port for JSON-RPC-Relay"
     required: false
     default: "7546"
+  email:
+    description: "Email for deployment configuration"
+    required: true
+    default: "user@example.com"
 outputs:
   accountId:
     description: "Hedera account id for a new account"
@@ -36,7 +40,7 @@ outputs:
 runs:
   using: "composite"
   steps:
-    - name: print inputs
+    - name: Print inputs
       shell: bash
       run: |
         echo "installMirrorNode: ${{ inputs.installMirrorNode }}"
@@ -62,6 +66,12 @@ runs:
       with:
         python-version: "3.10"
 
+    - name: Cleanup Previous Runs
+      shell: bash
+      run: |
+        rm -rf ~/.solo
+        kind delete cluster --name solo-e2e || true
+
     - name: Setup Kind
       uses: helm/kind-action@0025e74a8c7512023d06dc019c617aa3cf561fde # v1.10.0
       with:
@@ -72,46 +82,109 @@ runs:
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@0.28.1
+      run: npm install -g @hashgraph/solo@0.35.2
 
     - name: Deploy Solo Test Network
       shell: bash
+      env:
+        SOLO_CLUSTER_NAME: solo-e2e
+        SOLO_NAMESPACE: solo
+        SOLO_CLUSTER_SETUP_NAMESPACE: solo-cluster
+        SOLO_DEPLOYMENT: solo-deployment
+        SOLO_EMAIL: ${{ inputs.email }}
+        HEDERA_VERSION: ${{ inputs.hederaVersion }}
       run: |
-        solo init -i node0 -t ${{ inputs.hederaVersion }} -n solo-test --key-format pem --profile local
-        solo cluster setup
-        solo node keys --tls-keys --gossip-keys
-        solo network deploy
-        solo node setup
-        solo node start
-        kubectl port-forward svc/haproxy-node0-svc -n solo-test 50211:50211 &
+        # Initialize solo
+        solo init
+
+        # Generate node keys
+        solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+
+        # Create deployment
+        solo deployment create -n $SOLO_NAMESPACE --context kind-$SOLO_CLUSTER_NAME --email $SOLO_EMAIL --deployment-clusters kind-$SOLO_CLUSTER_NAME --deployment $SOLO_DEPLOYMENT --node-aliases node1,node2,node3
+
+        # Setup cluster
+        solo cluster setup -s $SOLO_CLUSTER_SETUP_NAMESPACE
+
+        # Deploy network
+        solo network deploy -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
+
+        # Setup nodes
+        solo node setup -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT -t $HEDERA_VERSION
+
+        # Start nodes
+        solo node start -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
+
+        # Debug: List services in the solo namespace
+        echo "Listing services in namespace $SOLO_NAMESPACE:"
+        kubectl get svc -n $SOLO_NAMESPACE
+
+        # Port forward HAProxy (only if service exists)
+        if kubectl get svc haproxy-node1-svc -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/haproxy-node1-svc -n $SOLO_NAMESPACE 50211:50211 &
+        else
+          echo "HAProxy service haproxy-node1-svc not found, skipping port-forward"
+        fi
 
     - name: Deploy MirrorNode
       if: ${{ inputs.installMirrorNode == 'true' }} # see https://github.com/actions/runner/issues/2238
       shell: bash
+      env:
+        SOLO_NAMESPACE: solo
+        SOLO_DEPLOYMENT: solo-deployment
       run: |
-        solo mirror-node deploy
-        kubectl port-forward svc/fullstack-deployment-hedera-explorer -n solo-test ${{ inputs.mirrorNodePort }}:80 &
+        solo mirror-node deploy --deployment $SOLO_DEPLOYMENT
+        # Debug: List services in the solo namespace
+        echo "Listing services in namespace $SOLO_NAMESPACE:"
+        kubectl get svc -n $SOLO_NAMESPACE
+        # Port forward mirror node REST API (only if service exists)
+        if kubectl get svc mirror-rest -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/mirror-rest -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePort }}:80 &
+        else
+          echo "Mirror node service mirror-rest not found, skipping port-forward"
+        fi
 
     - name: Deploy JSON-RPC-Relay
       if: ${{ inputs.installRelay == 'true' }}
       shell: bash
+      env:
+        SOLO_NAMESPACE: solo
+        SOLO_DEPLOYMENT: solo-deployment
       run: |
         echo "Installing JSON-RPC-Relay..."
-        solo relay deploy
+        solo relay deploy -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
         echo "JSON-RPC-Relay installed successfully"
-        kubectl port-forward svc/json-rpc-relay -n solo-test ${{ inputs.relayPort }}:7546 &
+        # Debug: List services in the solo namespace
+        echo "Listing services in namespace $SOLO_NAMESPACE:"
+        kubectl get svc -n $SOLO_NAMESPACE
+        # Port forward JSON-RPC-Relay (only if service exists)
+        if kubectl get svc relay-node1-node2-node3-hedera-json-rpc-relay -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/relay-node1-node2-node3-hedera-json-rpc-relay -n $SOLO_NAMESPACE ${{ inputs.relayPort }}:7546 &
+        else
+          echo "JSON-RPC-Relay service relay-node1-node2-node3-hedera-json-rpc-relay not found, skipping port-forward"
+        fi
 
     - name: Create account
       id: create-account
       shell: bash
       env:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
+        SOLO_NAMESPACE: solo
+        SOLO_DEPLOYMENT: solo-deployment
       run: |
-        JSON=$(solo account create | python3 $GITHUB_ACTION_PATH/extractAccountAsJson.py)
+        # Debug: Capture raw output of solo account create
+        echo "Running solo account create..."
+        solo account create --deployment $SOLO_DEPLOYMENT > account_create_output.txt
+        cat account_create_output.txt
+        # Run the command with Python script, exit on error
+        JSON=$(cat account_create_output.txt | python3 $GITHUB_ACTION_PATH/extractAccountAsJson.py) || {
+          echo "Error: Python script extractAccountAsJson.py failed"
+          exit 1
+        }
         export HEDERA_ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
         export HEDERA_ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
-        export HEDERA_ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$HEDERA_ACCOUNT_ID -n solo-test -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-        solo account update --account-id $HEDERA_ACCOUNT_ID --hbar-amount 10000000
+        export HEDERA_ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$HEDERA_ACCOUNT_ID -n $SOLO_NAMESPACE -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
+        solo account update --account-id $HEDERA_ACCOUNT_ID --hbar-amount 10000000 --deployment $SOLO_DEPLOYMENT
         echo "accountId=$HEDERA_ACCOUNT_ID"
         echo "publicKey=$HEDERA_ACCOUNT_PUBLIC_KEY"
         echo "privateKey=$HEDERA_ACCOUNT_PRIVATE_KEY"
