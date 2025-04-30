@@ -90,16 +90,16 @@ jobs:
             echo "❌ Error: publicKey is missing!"
             exit 1
           fi
-          if ! echo "${{ steps.solo.outputs.publicKey }}" | grep -E '^[0-9a-fA-F]{66}$' >/dev/null; then
-            echo "❌ Error: publicKey '${{ steps.solo.outputs.publicKey }}' is not 66 characters long or contains invalid characters"
+          if ! echo "${{ steps.solo.outputs.publicKey }}" | grep -E '^[0-9a-fA-F]{88}$' >/dev/null; then
+            echo "❌ Error: publicKey '${{ steps.solo.outputs.publicKey }}' is not 88 characters long or contains invalid characters"
             exit 1
           fi
           if [ -z "${{ steps.solo.outputs.privateKey }}" ]; then
             echo "❌ Error: privateKey is missing!"
             exit 1
           fi
-          if ! echo "${{ steps.solo.outputs.privateKey }}" | grep -E '^[0-9a-fA-F]{88}$' >/dev/null; then
-            echo "❌ Error: privateKey '${{ steps.solo.outputs.privateKey }}' is not 88 characters long or contains invalid characters"
+          if ! echo "${{ steps.solo.outputs.privateKey }}" | grep -E '^[0-9a-fA-F]{96}$' >/dev/null; then
+            echo "❌ Error: privateKey '${{ steps.solo.outputs.privateKey }}' is not 98 characters long or contains invalid characters"
             exit 1
           fi
           echo "Account ID: ${{ steps.solo.outputs.accountId }}"
