@@ -63,3 +63,44 @@ jobs:
             echo "✅ API request successful"
             cat response.json
           fi
+
+  validate-json-rpc-relay:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@v4
+      - name: ⚙️ Setup Hedera Solo with JSON-RPC Relay
+        uses: ./
+        with:
+          installRelay: true
+        id: solo
+          
+      - name: ✅ Validate JSON-RPC Relay
+        run: |
+          echo "Account ID: ${{ steps.solo.outputs.accountId }}"
+          echo "Public Key: ${{ steps.solo.outputs.publicKey }}"
+          echo "Private Key: ${{ steps.solo.outputs.privateKey }}"
+
+          sleep 30
+          RESPONSE=$(curl -s -w "%{http_code}" -X POST 'http://localhost:7546' \
+            -H 'Content-Type: application/json' \
+            -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+            -o response.json)
+          if [ "$RESPONSE" -ne 200 ]; then
+            echo "❌ Error: JSON-RPC request failed with status code $RESPONSE"
+            echo "Response body:"
+            cat response.json
+            echo "Checking if relay service is running:"
+            kubectl get pods -n solo | grep relay
+            exit 1
+          fi
+          CHAIN_ID=$(jq -r '.result' response.json)
+          if [ -z "$CHAIN_ID" ] || [ "$CHAIN_ID" = "null" ]; then
+            echo "❌ Error: Invalid or missing chainId in response"
+            echo "Response body:"
+            cat response.json
+            exit 1
+          fi
+          echo "✅ JSON-RPC Relay request successful"
+          echo "Chain ID: $CHAIN_ID"
+          cat response.json
