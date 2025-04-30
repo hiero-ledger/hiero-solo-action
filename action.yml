@@ -104,7 +104,7 @@ runs:
         solo network deploy -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
 
         # Setup nodes
-        solo node setup -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT -t $HEDERA_VERSION
+        solo node setup -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT -t $HEDERA_VERSION --quiet-mode
 
         # Start nodes
         solo node start -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
