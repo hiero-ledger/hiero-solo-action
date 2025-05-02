@@ -182,7 +182,7 @@ runs:
         SOLO_DEPLOYMENT: solo-deployment
       run: |
         echo "Creating ECDSA account..."
-        solo account create --key-type ECDSA --deployment $SOLO_DEPLOYMENT > account_create_output_ecdsa.txt
+        solo account create --generate-ecdsa-key --deployment $SOLO_DEPLOYMENT > account_create_output_ecdsa.txt
         cat account_create_output_ecdsa.txt
         JSON=$(cat account_create_output_ecdsa.txt | python3 $GITHUB_ACTION_PATH/extractAccountAsJson.py) || {
           echo "Error: Python script extractAccountAsJson.py failed"
@@ -208,7 +208,7 @@ runs:
         SOLO_DEPLOYMENT: solo-deployment
       run: |
         echo "Creating ED25519 account..."
-        solo account create --key-type ED25519 --deployment $SOLO_DEPLOYMENT > account_create_output_ed25519.txt
+        solo account create --deployment $SOLO_DEPLOYMENT > account_create_output_ed25519.txt
         cat account_create_output_ed25519.txt
         JSON=$(cat account_create_output_ed25519.txt | python3 $GITHUB_ACTION_PATH/extractAccountAsJson.py) || {
           echo "Error: Python script extractAccountAsJson.py failed"
