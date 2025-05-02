@@ -15,7 +15,7 @@ inputs:
     required: false
     default: "8080"
   installRelay:
-    description: "Install JSON-RPC-Relay"
+    description: 'Install JSON-RPC-Relay'
     required: false
     default: false
     type: boolean
@@ -28,24 +28,15 @@ inputs:
     required: true
     default: "user@example.com"
 outputs:
-  ecdsaAccountId:
-    description: "ECDSA account id of generated account"
-    value: ${{ steps.create-ecdsa.outputs.accountId }}
-  ecdsaPublicKey:
-    description: "ECDSA public key of generated account"
-    value: ${{ steps.create-ecdsa.outputs.publicKey }}
-  ecdsaPrivateKey:
-    description: "ECDSA private key of generated account"
-    value: ${{ steps.create-ecdsa.outputs.privateKey }}
-  ed25519AccountId:
-    description: "ED25519 account id of generated account"
-    value: ${{ steps.create-ed25519.outputs.accountId }}
-  ed25519PublicKey:
-    description: "ED25519 public key of generated account"
-    value: ${{ steps.create-ed25519.outputs.publicKey }}
-  ed25519PrivateKey:
-    description: "ED25519 private key of generated account"
-    value: ${{ steps.create-ed25519.outputs.privateKey }}
+  accountId:
+    description: "Hedera account id for a new account"
+    value: ${{ steps.create-account.outputs.accountId }}
+  publicKey:
+    description: "Hedera public key for the new account"
+    value: ${{ steps.create-account.outputs.publicKey }}
+  privateKey:
+    description: "Hedera private key for the new account"
+    value: ${{ steps.create-account.outputs.privateKey }}
 runs:
   using: "composite"
   steps:
@@ -173,44 +164,20 @@ runs:
           echo "JSON-RPC-Relay service relay-node1-node2-node3-hedera-json-rpc-relay not found, Skipping port-forward"
         fi
 
-    - name: Create ECDSA Account
-      id: create-ecdsa
+    - name: Create account
+      id: create-account
       shell: bash
       env:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
         SOLO_NAMESPACE: solo
         SOLO_DEPLOYMENT: solo-deployment
       run: |
-        echo "Creating ECDSA account..."
-        solo account create --generate-ecdsa-key --deployment $SOLO_DEPLOYMENT > account_create_output_ecdsa.txt
-        cat account_create_output_ecdsa.txt
-        JSON=$(cat account_create_output_ecdsa.txt | python3 $GITHUB_ACTION_PATH/extractAccountAsJson.py) || {
-          echo "Error: Python script extractAccountAsJson.py failed"
-          exit 1
-        }
-        export ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
-        export ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
-        export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$ACCOUNT_ID -n $SOLO_NAMESPACE -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-        solo account update --account-id $ACCOUNT_ID --hbar-amount 10000000 --deployment $SOLO_DEPLOYMENT
-        echo "accountId=$ACCOUNT_ID"
-        echo "publicKey=$ACCOUNT_PUBLIC_KEY"
-        echo "privateKey=$ACCOUNT_PRIVATE_KEY"
-        echo "accountId=$ACCOUNT_ID" >> $GITHUB_OUTPUT
-        echo "publicKey=$ACCOUNT_PUBLIC_KEY" >> $GITHUB_OUTPUT
-        echo "privateKey=$ACCOUNT_PRIVATE_KEY" >> $GITHUB_OUTPUT
-
-    - name: Create ED25519 Account
-      id: create-ed25519
-      shell: bash
-      env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-        SOLO_NAMESPACE: solo
-        SOLO_DEPLOYMENT: solo-deployment
-      run: |
-        echo "Creating ED25519 account..."
-        solo account create --deployment $SOLO_DEPLOYMENT > account_create_output_ed25519.txt
-        cat account_create_output_ed25519.txt
-        JSON=$(cat account_create_output_ed25519.txt | python3 $GITHUB_ACTION_PATH/extractAccountAsJson.py) || {
+        # Debug: Capture raw output of solo account create
+        echo "Running solo account create..."
+        solo account create --deployment $SOLO_DEPLOYMENT > account_create_output.txt
+        cat account_create_output.txt
+        # Run the command with Python script, exit on error
+        JSON=$(cat account_create_output.txt | python3 $GITHUB_ACTION_PATH/extractAccountAsJson.py) || {
           echo "Error: Python script extractAccountAsJson.py failed"
           exit 1
         }

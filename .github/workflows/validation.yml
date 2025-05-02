@@ -18,34 +18,18 @@ jobs:
 
       - name: ✅ Validate Hedera Solo Outputs
         run: |
-          # Validate ECDSA Outputs
-          if [ -z "${{ steps.solo.outputs.ecdsaAccountId }}" ]; then
-            echo "❌ Error: ECDSA accountId is missing!"
+          if [ -z "${{ steps.solo.outputs.accountId }}" ]; then
+            echo "❌ Error: accountId is missing!"
             exit 1
           fi
-          if [ -z "${{ steps.solo.outputs.ecdsaPrivateKey }}" ]; then
-            echo "❌ Error: ECDSA privateKey is missing!"
+          if [ -z "${{ steps.solo.outputs.privateKey }}" ]; then
+            echo "❌ Error: privateKey is missing!"
             exit 1
           fi
-          if [ -z "${{ steps.solo.outputs.ecdsaPublicKey }}" ]; then
-            echo "❌ Error: ECDSA publicKey is missing!"
+          if [ -z "${{ steps.solo.outputs.publicKey }}" ]; then
+            echo "❌ Error: publicKey is missing!"
             exit 1
           fi
-
-          # Validate ED25519 Outputs
-          if [ -z "${{ steps.solo.outputs.ed25519AccountId }}" ]; then
-            echo "❌ Error: ED25519 accountId is missing!"
-            exit 1
-          fi
-          if [ -z "${{ steps.solo.outputs.ed25519PrivateKey }}" ]; then
-            echo "❌ Error: ED25519 privateKey is missing!"
-            exit 1
-          fi
-          if [ -z "${{ steps.solo.outputs.ed25519PublicKey }}" ]; then
-            echo "❌ Error: ED25519 publicKey is missing!"
-            exit 1
-          fi
-
           echo "🎉 All outputs are valid!"
 
   validate-mirror-node:
@@ -62,15 +46,10 @@ jobs:
 
       - name: ✅ Validate Mirror Node API
         run: |
-          # Log Account details for both ECDSA and ED25519
-          echo "ECDSA Account ID: ${{ steps.solo.outputs.ecdsaAccountId }}"
-          echo "ECDSA Private Key: ${{ steps.solo.outputs.ecdsaPrivateKey }}"
-          echo "ECDSA Public Key: ${{ steps.solo.outputs.ecdsaPublicKey }}"
-
-          echo "ED25519 Account ID: ${{ steps.solo.outputs.ed25519AccountId }}"
-          echo "ED25519 Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
-          echo "ED25519 Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
-
+          echo "Account ID: ${{ steps.solo.outputs.accountId }}"
+          echo "Private Key: ${{ steps.solo.outputs.privateKey }}"
+          echo "Public Key: ${{ steps.solo.outputs.publicKey }}"
+          
           # Wait for the mirror node to be fully up and running
           sleep 10
 
@@ -90,23 +69,17 @@ jobs:
     steps:
       - name: 🚀 Checkout Repo
         uses: actions/checkout@v4
-
       - name: ⚙️ Setup Hedera Solo with JSON-RPC Relay
         uses: ./
         with:
           installRelay: true
         id: solo
-
+          
       - name: ✅ Validate JSON-RPC Relay
         run: |
-          # Log Account details for both ECDSA and ED25519
-          echo "ECDSA Account ID: ${{ steps.solo.outputs.ecdsaAccountId }}"
-          echo "ECDSA Public Key: ${{ steps.solo.outputs.ecdsaPublicKey }}"
-          echo "ECDSA Private Key: ${{ steps.solo.outputs.ecdsaPrivateKey }}"
-
-          echo "ED25519 Account ID: ${{ steps.solo.outputs.ed25519AccountId }}"
-          echo "ED25519 Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
-          echo "ED25519 Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
+          echo "Account ID: ${{ steps.solo.outputs.accountId }}"
+          echo "Public Key: ${{ steps.solo.outputs.publicKey }}"
+          echo "Private Key: ${{ steps.solo.outputs.privateKey }}"
 
           sleep 30
           RESPONSE=$(curl -s -w "%{http_code}" -X POST 'http://localhost:7546' \
