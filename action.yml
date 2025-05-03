@@ -6,8 +6,8 @@ inputs:
     required: true
     default: false
     type: boolean
-  hederaVersion:
-    description: "Version of Hedera to use. Defaults to Mainnet version."
+  hieroVersion:
+    description: "Version of Hiero consensus node to be use."
     required: false
     default: "v0.58.10"
   mirrorNodePort:
@@ -29,22 +29,22 @@ inputs:
     default: "user@example.com"
 outputs:
   ecdsaAccountId:
-    description: "Hedera ECDSA account id"
+    description: "ECDSA account id of generated account"
     value: ${{ steps.create-ecdsa.outputs.accountId }}
   ecdsaPublicKey:
-    description: "Hedera ECDSA public key"
+    description: "ECDSA public key of generated account"
     value: ${{ steps.create-ecdsa.outputs.publicKey }}
   ecdsaPrivateKey:
-    description: "Hedera ECDSA private key"
+    description: "ECDSA private key of generated account"
     value: ${{ steps.create-ecdsa.outputs.privateKey }}
   ed25519AccountId:
-    description: "Hedera ED25519 account id"
+    description: "ED25519 account id of generated account"
     value: ${{ steps.create-ed25519.outputs.accountId }}
   ed25519PublicKey:
-    description: "Hedera ED25519 public key"
+    description: "ED25519 public key of generated account"
     value: ${{ steps.create-ed25519.outputs.publicKey }}
   ed25519PrivateKey:
-    description: "Hedera ED25519 private key"
+    description: "ED25519 private key of generated account"
     value: ${{ steps.create-ed25519.outputs.privateKey }}
 runs:
   using: "composite"
@@ -101,7 +101,7 @@ runs:
         SOLO_CLUSTER_SETUP_NAMESPACE: solo-cluster
         SOLO_DEPLOYMENT: solo-deployment
         SOLO_EMAIL: ${{ inputs.email }}
-        HEDERA_VERSION: ${{ inputs.hederaVersion }}
+        HIERO_VERSION: ${{ inputs.hieroVersion }}
       run: |
         # Initialize solo
         solo init
@@ -119,7 +119,7 @@ runs:
         solo network deploy -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
 
         # Setup nodes
-        solo node setup -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT -t $HEDERA_VERSION --quiet-mode
+        solo node setup -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT -t $HIERO_VERSION --quiet-mode
 
         # Start nodes
         solo node start -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
@@ -188,16 +188,16 @@ runs:
           echo "Error: Python script extractAccountAsJson.py failed"
           exit 1
         }
-        export HEDERA_ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
-        export HEDERA_ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
-        export HEDERA_ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$HEDERA_ACCOUNT_ID -n $SOLO_NAMESPACE -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-        solo account update --account-id $HEDERA_ACCOUNT_ID --hbar-amount 10000000 --deployment $SOLO_DEPLOYMENT
-        echo "accountId=$HEDERA_ACCOUNT_ID"
-        echo "publicKey=$HEDERA_ACCOUNT_PUBLIC_KEY"
-        echo "privateKey=$HEDERA_ACCOUNT_PRIVATE_KEY"
-        echo "accountId=$HEDERA_ACCOUNT_ID" >> $GITHUB_OUTPUT
-        echo "publicKey=$HEDERA_ACCOUNT_PUBLIC_KEY" >> $GITHUB_OUTPUT
-        echo "privateKey=$HEDERA_ACCOUNT_PRIVATE_KEY" >> $GITHUB_OUTPUT
+        export ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
+        export ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
+        export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$ACCOUNT_ID -n $SOLO_NAMESPACE -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
+        solo account update --account-id $ACCOUNT_ID --hbar-amount 10000000 --deployment $SOLO_DEPLOYMENT
+        echo "accountId=$ACCOUNT_ID"
+        echo "publicKey=$ACCOUNT_PUBLIC_KEY"
+        echo "privateKey=$ACCOUNT_PRIVATE_KEY"
+        echo "accountId=$ACCOUNT_ID" >> $GITHUB_OUTPUT
+        echo "publicKey=$ACCOUNT_PUBLIC_KEY" >> $GITHUB_OUTPUT
+        echo "privateKey=$ACCOUNT_PRIVATE_KEY" >> $GITHUB_OUTPUT
 
     - name: Create ED25519 Account
       id: create-ed25519
@@ -214,16 +214,16 @@ runs:
           echo "Error: Python script extractAccountAsJson.py failed"
           exit 1
         }
-        export HEDERA_ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
-        export HEDERA_ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
-        export HEDERA_ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$HEDERA_ACCOUNT_ID -n $SOLO_NAMESPACE -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-        solo account update --account-id $HEDERA_ACCOUNT_ID --hbar-amount 10000000 --deployment $SOLO_DEPLOYMENT
-        echo "accountId=$HEDERA_ACCOUNT_ID"
-        echo "publicKey=$HEDERA_ACCOUNT_PUBLIC_KEY"
-        echo "privateKey=$HEDERA_ACCOUNT_PRIVATE_KEY"
-        echo "accountId=$HEDERA_ACCOUNT_ID" >> $GITHUB_OUTPUT
-        echo "publicKey=$HEDERA_ACCOUNT_PUBLIC_KEY" >> $GITHUB_OUTPUT
-        echo "privateKey=$HEDERA_ACCOUNT_PRIVATE_KEY" >> $GITHUB_OUTPUT
+        export ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
+        export ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
+        export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$ACCOUNT_ID -n $SOLO_NAMESPACE -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
+        solo account update --account-id $ACCOUNT_ID --hbar-amount 10000000 --deployment $SOLO_DEPLOYMENT
+        echo "accountId=$ACCOUNT_ID"
+        echo "publicKey=$ACCOUNT_PUBLIC_KEY"
+        echo "privateKey=$ACCOUNT_PRIVATE_KEY"
+        echo "accountId=$ACCOUNT_ID" >> $GITHUB_OUTPUT
+        echo "publicKey=$ACCOUNT_PUBLIC_KEY" >> $GITHUB_OUTPUT
+        echo "privateKey=$ACCOUNT_PRIVATE_KEY" >> $GITHUB_OUTPUT
 
 # Ref: https://haya14busa.github.io/github-action-brandings/
 branding:
