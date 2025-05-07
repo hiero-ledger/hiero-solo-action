@@ -17,7 +17,16 @@ jobs:
         id: solo
 
       - name: ✅ Validate Hedera Solo Outputs
-        run: ./github/workflows/check-accounts.sh
+        run: .${GITHUB_ACTION_PATH}/check-accounts.sh
+
+  test-outputs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@v4
+
+      - name: ✅ Validate Hedera Solo Outputs
+        run: .${GITHUB_ACTION_PATH}/check-accounts.sh
 
   validate-mirror-node:
     runs-on: ubuntu-latest
