@@ -14,9 +14,10 @@ Maintainers are assigned the following scopes in this repository:
 
 <!-- Please keep this sorted alphabetically by github -->
 
-| Name | GitHub ID | Scope | LFID | Discord ID | Email | Company Affiliation |
-|----- | --------- | ----- | ---- | ---------- | ----- | ------------------- |
-|      |           |       |      |            |       |                     |
+| Name           | GitHub ID     | Scope | LFID | Discord ID     | Email | Company Affiliation |
+|--------------- | ------------- | ----- | ---- | -------------- | ----- | ------------------- |
+| Hendrik Ebbers | hendrikebbers |       |      | hendrik.ebbers |       | Hashgraph           |
+|                | gsstoykov     |       |      | glime_39042    |       | LimeChain           |
 
 
 ## Emeritus Maintainers

@@ -10,10 +10,14 @@ inputs:
     description: "Version of Hiero consensus node to be use."
     required: false
     default: "v0.58.10"
-  mirrorNodePort:
-    description: "Port for Mirror Node"
+  mirrorNodePortRest:
+    description: "Port for Mirror Node REST API"
     required: false
     default: "8080"
+  mirrorNodePortGrpc:
+    description: "Port for Mirror Node gRPC"
+    required: false
+    default: "5600"
   installRelay:
     description: "Install JSON-RPC-Relay"
     required: false
@@ -142,9 +146,15 @@ runs:
         kubectl get svc -n $SOLO_NAMESPACE
         # Port forward mirror node REST API (only if service exists)
         if kubectl get svc mirror-rest -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-rest -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePort }}:80 &
+          kubectl port-forward svc/mirror-rest -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortRest }}:80 &
         else
           echo "Mirror node service mirror-rest not found, skipping port-forward"
+        fi
+        # Port forward mirror node gRPC (only if service exists)
+        if kubectl get svc mirror-grpc -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/mirror-grpc -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortGrpc }}:5600 &
+        else
+          echo "Mirror node service mirror-grpc not found, skipping port-forward"
         fi
 
     - name: Deploy JSON-RPC-Relay
