@@ -16,6 +16,9 @@ jobs:
         uses: ./
         id: solo
 
+      - name: Set Script Permissions
+        run: chmod +x ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
+
       - name: ✅ Validate Hedera Solo Outputs
         run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
         env:
@@ -81,6 +84,9 @@ jobs:
         with:
           installRelay: true
         id: solo
+
+      - name: Set Script Permissions
+        run: chmod +x ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
       - name: ✅ Validate JSON-RPC Relay
         run: |
