@@ -40,7 +40,7 @@ jobs:
 
       - name: ✅ Validate Mirror Node API
         run: |
-        # Log Account details for both ECDSA and ED25519
+          # Log Account details for both ECDSA and ED25519
           echo "ECDSA Account ID: $ECDSA_ACCOUNT_ID"
           echo "ECDSA Private Key: $ECDSA_PRIVATE_KEY"
           echo "ECDSA Public Key: $ECDSA_PUBLIC_KEY"
