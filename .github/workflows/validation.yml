@@ -17,36 +17,14 @@ jobs:
         id: solo
 
       - name: ✅ Validate Hedera Solo Outputs
-        run: |
-          # Validate ECDSA Outputs
-          if [ -z "${{ steps.solo.outputs.ecdsaAccountId }}" ]; then
-            echo "❌ Error: ECDSA accountId is missing!"
-            exit 1
-          fi
-          if [ -z "${{ steps.solo.outputs.ecdsaPrivateKey }}" ]; then
-            echo "❌ Error: ECDSA privateKey is missing!"
-            exit 1
-          fi
-          if [ -z "${{ steps.solo.outputs.ecdsaPublicKey }}" ]; then
-            echo "❌ Error: ECDSA publicKey is missing!"
-            exit 1
-          fi
-
-          # Validate ED25519 Outputs
-          if [ -z "${{ steps.solo.outputs.ed25519AccountId }}" ]; then
-            echo "❌ Error: ED25519 accountId is missing!"
-            exit 1
-          fi
-          if [ -z "${{ steps.solo.outputs.ed25519PrivateKey }}" ]; then
-            echo "❌ Error: ED25519 privateKey is missing!"
-            exit 1
-          fi
-          if [ -z "${{ steps.solo.outputs.ed25519PublicKey }}" ]; then
-            echo "❌ Error: ED25519 publicKey is missing!"
-            exit 1
-          fi
-
-          echo "🎉 All outputs are valid!"
+        run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
+        env:
+          ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
+          ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
+          ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
+          ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
+          ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
+          ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
 
   validate-mirror-node:
     runs-on: ubuntu-latest
@@ -99,14 +77,15 @@ jobs:
 
       - name: ✅ Validate JSON-RPC Relay
         run: |
-          # Log Account details for both ECDSA and ED25519
+          ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
+
           echo "ECDSA Account ID: ${{ steps.solo.outputs.ecdsaAccountId }}"
-          echo "ECDSA Public Key: ${{ steps.solo.outputs.ecdsaPublicKey }}"
           echo "ECDSA Private Key: ${{ steps.solo.outputs.ecdsaPrivateKey }}"
+          echo "ECDSA Public Key: ${{ steps.solo.outputs.ecdsaPublicKey }}"
 
           echo "ED25519 Account ID: ${{ steps.solo.outputs.ed25519AccountId }}"
-          echo "ED25519 Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
           echo "ED25519 Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
+          echo "ED25519 Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
 
           sleep 30
           RESPONSE=$(curl -s -w "%{http_code}" -X POST 'http://localhost:7546' \
@@ -131,3 +110,10 @@ jobs:
           echo "✅ JSON-RPC Relay request successful"
           echo "Chain ID: $CHAIN_ID"
           cat response.json
+        env:
+          ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
+          ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
+          ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
+          ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
+          ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
+          ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
