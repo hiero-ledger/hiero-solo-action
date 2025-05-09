@@ -15,33 +15,37 @@ The GitHub action takes the following inputs:
 
 | Input          |  Required | Default |Description |
 |----------------|-----------|---------|-------------------------------|
-| `installMirrorNode` |  false    | `false`   | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:8080`. |
-| `installRelay` |  false    | `false`   | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process. |
 | `hieroVersion`|  false    | `v0.58.10` | Hiero consenus node version to use |
+| `installMirrorNode` |  false    | `false`   | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:8080`. |
 | `mirrorNodePortRest`|  false    | `8080` | Port for Mirror Node REST API |
 | `mirrorNodePortGrpc`|  false    | `5600` | Port for Mirror Node gRPC |
+| `installRelay` |  false    | `false`   | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process. |
+| `relayPort`|  false    | `7546` | Port for the JSON-RPC-Relay |
 
 
 ## Outputs
 
 The GitHub action outputs the following information:
 
-- `accountId`: The account ID of the account created.
-- `privateKey`: The private key of the account created.
-- `publicKey`: The public key of the account created.
+- `steps.solo.outputs.ecdsaAccountId`: The account ID of the account created (in ECDSA format).
+- `steps.solo.outputs.ecdsaPrivateKey`: The private key of the account created (in ECDSA format).
+- `steps.solo.outputs.ecdsaPublicKey`: The public key of the account created (in ECDSA format).
+- `steps.solo.outputs.ed25519AccountId`: The account ID of a second account created in ED25519 format.
+- `steps.solo.outputs.ed25519PrivateKey`: The private key of a second account created in ED25519 format.
+- `steps.solo.outputs.ed25519PublicKey`: The public key of a second account created in ED25519 format.
 
 # Usage
 
 ```yaml
 - name: Setup Hiero Solo
-  uses: hiero-ledger/hiero-solo-action@v0.5
+  uses: hiero-ledger/hiero-solo-action@v0.7
   id: solo
   
 - name: Use Hiero Solo
   run: |
-    echo "Account ID: ${{ steps.solo.outputs.accountId }}"
-    echo "Private Key: ${{ steps.solo.outputs.privateKey }}"
-    echo "Public Key: ${{ steps.solo.outputs.publicKey }}"
+    echo "Account ID: ${{ steps.solo.outputs.ecdsaAccountId }}"
+    echo "Private Key: ${{ steps.solo.outputs.ecdsaPrivateKey }}"
+    echo "Public Key: ${{ steps.solo.outputs.ecdsaPublicKey }}"
 ```
 # Tributes
 
