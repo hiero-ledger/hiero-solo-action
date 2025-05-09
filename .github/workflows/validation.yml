@@ -110,3 +110,10 @@ jobs:
           echo "✅ JSON-RPC Relay request successful"
           echo "Chain ID: $CHAIN_ID"
           cat response.json
+        env:
+          ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
+          ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
+          ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
+          ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
+          ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
+          ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
