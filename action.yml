@@ -105,22 +105,22 @@ runs:
         solo init
 
         # Generate node keys
-        solo node keys --gossip-keys --tls-keys -i node1,node2,node3
+        solo node keys --gossip-keys --tls-keys -i node1
 
         # Create deployment
-        solo deployment create -n $SOLO_NAMESPACE --context kind-$SOLO_CLUSTER_NAME --email $SOLO_EMAIL --deployment-clusters kind-$SOLO_CLUSTER_NAME --deployment $SOLO_DEPLOYMENT --node-aliases node1,node2,node3
+        solo deployment create -n $SOLO_NAMESPACE --context kind-$SOLO_CLUSTER_NAME --email $SOLO_EMAIL --deployment-clusters kind-$SOLO_CLUSTER_NAME --deployment $SOLO_DEPLOYMENT --node-aliases node1
 
         # Setup cluster
         solo cluster setup -s $SOLO_CLUSTER_SETUP_NAMESPACE
 
         # Deploy network
-        solo network deploy -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
+        solo network deploy -i node1 --deployment $SOLO_DEPLOYMENT
 
-        # Setup nodes
-        solo node setup -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT -t $HIERO_VERSION --quiet-mode
+        # Setup node
+        solo node setup -i node1 --deployment $SOLO_DEPLOYMENT -t $HIERO_VERSION --quiet-mode
 
-        # Start nodes
-        solo node start -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
+        # Start node
+        solo node start -i node1 --deployment $SOLO_DEPLOYMENT
 
         # Debug: List services in the solo namespace
         echo "Listing services in namespace $SOLO_NAMESPACE:"
@@ -165,16 +165,16 @@ runs:
         SOLO_DEPLOYMENT: solo-deployment
       run: |
         echo "Installing JSON-RPC-Relay..."
-        solo relay deploy -i node1,node2,node3 --deployment $SOLO_DEPLOYMENT
+        solo relay deploy -i node1 --deployment $SOLO_DEPLOYMENT
         echo "JSON-RPC-Relay installed successfully"
         # Debug: List services in the solo namespace
         echo "Listing services in namespace $SOLO_NAMESPACE:"
         kubectl get svc -n $SOLO_NAMESPACE
         # Port forward JSON-RPC-Relay (only if service exists)
-        if kubectl get svc relay-node1-node2-node3-hedera-json-rpc-relay -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/relay-node1-node2-node3-hedera-json-rpc-relay -n $SOLO_NAMESPACE ${{ inputs.relayPort }}:7546 &
+        if kubectl get svc relay-node1-hedera-json-rpc-relay -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n $SOLO_NAMESPACE ${{ inputs.relayPort }}:7546 &
         else
-          echo "JSON-RPC-Relay service relay-node1-node2-node3-hedera-json-rpc-relay not found, Skipping port-forward"
+          echo "JSON-RPC-Relay service relay-node1-hedera-json-rpc-relay not found, Skipping port-forward"
         fi
 
     - name: Create ECDSA Account
