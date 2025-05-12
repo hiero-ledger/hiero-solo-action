@@ -2,6 +2,20 @@
 
 set -e
 
+# Validate Generic Outputs (ED25519-based)
+if [ -z "$ACCOUNT_ID" ]; then
+    echo "❌ Error: Generic accountId (ED25519) is missing!"
+    exit 1
+fi
+if [ -z "$PRIVATE_KEY" ]; then
+    echo "❌ Error: Generic privateKey (ED25519) is missing!"
+    exit 1
+fi
+if [ -z "$PUBLIC_KEY" ]; then
+    echo "❌ Error: Generic publicKey (ED25519) is missing!"
+    exit 1
+fi
+
 # Validate ECDSA Outputs
 if [ -z "$ECDSA_ACCOUNT_ID" ]; then
     echo "❌ Error: ECDSA accountId is missing!"

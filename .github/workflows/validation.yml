@@ -19,6 +19,9 @@ jobs:
       - name: ✅ Validate Hedera Solo Outputs
         run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
         env:
+          ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
+          PRIVATE_KEY: ${{ steps.solo.outputs.privateKey }}
+          PUBLIC_KEY: ${{ steps.solo.outputs.publicKey }}
           ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
           ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
           ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
@@ -40,7 +43,10 @@ jobs:
 
       - name: ✅ Validate Mirror Node API
         run: |
-          # Log Account details for both ECDSA and ED25519
+          # Log Account details for Generic (ED25519), ECDSA, and ED25519
+          echo "Generic Account ID (ED25519): ${{ steps.solo.outputs.accountId }}"
+          echo "Generic Private Key (ED25519): ${{ steps.solo.outputs.privateKey }}"
+          echo "Generic Public Key (ED25519): ${{ steps.solo.outputs.publicKey }}"
           echo "ECDSA Account ID: ${{ steps.solo.outputs.ecdsaAccountId }}"
           echo "ECDSA Private Key: ${{ steps.solo.outputs.ecdsaPrivateKey }}"
           echo "ECDSA Public Key: ${{ steps.solo.outputs.ecdsaPublicKey }}"
@@ -79,6 +85,10 @@ jobs:
         run: |
           ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
+          # Log Account details for Generic (ED25519), ECDSA, and ED25519
+          echo "Generic Account ID (ED25519): ${{ steps.solo.outputs.accountId }}"
+          echo "Generic Private Key (ED25519): ${{ steps.solo.outputs.privateKey }}"
+          echo "Generic Public Key (ED25519): ${{ steps.solo.outputs.publicKey }}"
           echo "ECDSA Account ID: ${{ steps.solo.outputs.ecdsaAccountId }}"
           echo "ECDSA Private Key: ${{ steps.solo.outputs.ecdsaPrivateKey }}"
           echo "ECDSA Public Key: ${{ steps.solo.outputs.ecdsaPublicKey }}"
@@ -111,6 +121,9 @@ jobs:
           echo "Chain ID: $CHAIN_ID"
           cat response.json
         env:
+          ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
+          PRIVATE_KEY: ${{ steps.solo.outputs.privateKey }}
+          PUBLIC_KEY: ${{ steps.solo.outputs.publicKey }}
           ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
           ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
           ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
