@@ -21,6 +21,9 @@ The GitHub action takes the following inputs:
 | `mirrorNodePortRest`|  false    | `8080` | Port for Mirror Node REST API |
 | `mirrorNodePortGrpc`|  false    | `5600` | Port for Mirror Node gRPC |
 
+> [! IMPORTANT]
+> The used Solo version isn't compatible with Hiero consenus node versions above v0.58.10.
+> Therefore we recommend to not change `hieroVersion`.
 
 ## Outputs
 
