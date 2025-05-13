@@ -22,6 +22,10 @@ The GitHub action takes the following inputs:
 | `installRelay` |  false    | `false`   | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process. |
 | `relayPort`|  false    | `7546` | Port for the JSON-RPC-Relay |
 
+> [! IMPORTANT]
+> The used Solo version isn't compatible with Hiero consenus node versions above v0.58.10.
+> Therefore we recommend to not change `hieroVersion`.
+
 ## Outputs
 
 | Output                                   | Description                                                                 |

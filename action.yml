@@ -32,6 +32,15 @@ inputs:
     required: true
     default: "user@example.com"
 outputs:
+  accountId:
+    description: "Account ID of the generated ED25519 account (default for simplicity)"
+    value: ${{ steps.create-ed25519.outputs.accountId }}
+  publicKey:
+    description: "Public key of the generated ED25519 account (default for simplicity)"
+    value: ${{ steps.create-ed25519.outputs.publicKey }}
+  privateKey:
+    description: "Private key of the generated ED25519 account (default for simplicity)"
+    value: ${{ steps.create-ed25519.outputs.privateKey }}
   ecdsaAccountId:
     description: "ECDSA account id of generated account"
     value: ${{ steps.create-ecdsa.outputs.accountId }}
