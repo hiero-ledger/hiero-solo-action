@@ -40,7 +40,7 @@ The GitHub action takes the following inputs:
 
 ```yaml
 - name: Setup Hiero Solo
-  uses: hiero-ledger/hiero-solo-action@v0.7
+  uses: hiero-ledger/hiero-solo-action@v0.8
   id: solo
   
 - name: Use Hiero Solo
@@ -54,7 +54,7 @@ The GitHub action takes the following inputs:
 
 ```yaml
 - name: Setup Hiero Solo
-  uses: hiero-ledger/hiero-solo-action@v0.7
+  uses: hiero-ledger/hiero-solo-action@v0.8
   id: solo
   
 - name: Use Hiero Solo
@@ -68,7 +68,7 @@ The GitHub action takes the following inputs:
 
 ```yaml
 - name: Setup Hiero Solo
-  uses: hiero-ledger/hiero-solo-action@v0.7
+  uses: hiero-ledger/hiero-solo-action@v0.8
   id: solo
   
 - name: Use Hiero Solo
