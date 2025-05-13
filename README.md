@@ -25,16 +25,34 @@ The GitHub action takes the following inputs:
 
 ## Outputs
 
-The GitHub action outputs the following information:
+| Output                                   | Description                                                                 |
+|------------------------------------------|-----------------------------------------------------------------------------|
+| `steps.solo.outputs.accountId`           | The account ID of account created in ED25519 format.                        |
+| `steps.solo.outputs.publicKey`           | The public key of account created in ED25519 format.                        |
+| `steps.solo.outputs.privateKey`          | The private key of account created in ED25519 format.                       |
+| `steps.solo.outputs.ecdsaAccountId`      | The account ID of the account created (in ECDSA format).                    |
+| `steps.solo.outputs.ecdsaPublicKey`      | The public key of the account created (in ECDSA format).                    |
+| `steps.solo.outputs.ecdsaPrivateKey`     | The private key of the account created (in ECDSA format).                   |
+| `steps.solo.outputs.ed25519AccountId`    | Same as `accountId`, but with an explicit ED25519 format!                   |
+| `steps.solo.outputs.ed25519PublicKey`    | Same as `publicKey`, but with an explicit ED25519 format!                   |
+| `steps.solo.outputs.ed25519PrivateKey`   | Same as `privateKey`, but with an explicit ED25519 format!                  |
 
-- `steps.solo.outputs.ecdsaAccountId`: The account ID of the account created (in ECDSA format).
-- `steps.solo.outputs.ecdsaPrivateKey`: The private key of the account created (in ECDSA format).
-- `steps.solo.outputs.ecdsaPublicKey`: The public key of the account created (in ECDSA format).
-- `steps.solo.outputs.ed25519AccountId`: The account ID of a second account created in ED25519 format.
-- `steps.solo.outputs.ed25519PrivateKey`: The private key of a second account created in ED25519 format.
-- `steps.solo.outputs.ed25519PublicKey`: The public key of a second account created in ED25519 format.
 
-# Usage
+# Simple usage
+
+```yaml
+- name: Setup Hiero Solo
+  uses: hiero-ledger/hiero-solo-action@v0.7
+  id: solo
+  
+- name: Use Hiero Solo
+  run: |
+    echo "Account ID: ${{ steps.solo.outputs.accountId }}"
+    echo "Private Key: ${{ steps.solo.outputs.privateKey }}"
+    echo "Public Key: ${{ steps.solo.outputs.publicKey }}"
+```
+
+# Usage with `ecdsa` account format
 
 ```yaml
 - name: Setup Hiero Solo
@@ -47,6 +65,21 @@ The GitHub action outputs the following information:
     echo "Private Key: ${{ steps.solo.outputs.ecdsaPrivateKey }}"
     echo "Public Key: ${{ steps.solo.outputs.ecdsaPublicKey }}"
 ```
+
+# Usage with `ED25519` account format
+
+```yaml
+- name: Setup Hiero Solo
+  uses: hiero-ledger/hiero-solo-action@v0.7
+  id: solo
+  
+- name: Use Hiero Solo
+  run: |
+    echo "Account ID: ${{ steps.solo.outputs.ed25519AccountId }}"
+    echo "Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
+    echo "Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
+```
+
 # Tributes
 
 This action is based on the work of [Hiero Solo](https://github.com/hiero-ledger/solo).
