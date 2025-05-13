@@ -22,7 +22,6 @@ The GitHub action takes the following inputs:
 | `installRelay` |  false    | `false`   | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process. |
 | `relayPort`|  false    | `7546` | Port for the JSON-RPC-Relay |
 
-
 ## Outputs
 
 | Output                                   | Description                                                                 |
@@ -36,7 +35,6 @@ The GitHub action takes the following inputs:
 | `steps.solo.outputs.ed25519AccountId`    | Same as `accountId`, but with an explicit ED25519 format!                   |
 | `steps.solo.outputs.ed25519PublicKey`    | Same as `publicKey`, but with an explicit ED25519 format!                   |
 | `steps.solo.outputs.ed25519PrivateKey`   | Same as `privateKey`, but with an explicit ED25519 format!                  |
-
 
 # Simple usage
 
