@@ -17,7 +17,7 @@ Maintainers are assigned the following scopes in this repository:
 | Name           | GitHub ID     | Scope | LFID | Discord ID     | Email | Company Affiliation |
 |--------------- | ------------- | ----- | ---- | -------------- | ----- | ------------------- |
 | Hendrik Ebbers | hendrikebbers |       |      | hendrik.ebbers |       | Hashgraph           |
-|                | gsstoykov     |       |      | glime_39042    |       | LimeChain           |
+| Georgi Stoykov | gsstoykov     |       |      | glime_39042    |       | LimeChain           |
 
 
 ## Emeritus Maintainers
