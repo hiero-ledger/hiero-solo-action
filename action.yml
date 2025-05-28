@@ -132,7 +132,7 @@ runs:
         solo network deploy -i node1 --deployment $SOLO_DEPLOYMENT
 
         # Setup node
-        solo node setup -i node1 --deployment $SOLO_DEPLOYMENT
+        solo node setup -i node1 --deployment $SOLO_DEPLOYMENT -t "v0.62.3"
 
         # Start node
         solo node start -i node1 --deployment $SOLO_DEPLOYMENT
