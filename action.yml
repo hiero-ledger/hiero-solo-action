@@ -13,7 +13,7 @@ inputs:
   mirrorNodePortRest:
     description: "Port for Mirror Node REST API"
     required: false
-    default: "5551"
+    default: "80"
   mirrorNodePortGrpc:
     description: "Port for Mirror Node gRPC"
     required: false
@@ -21,7 +21,7 @@ inputs:
   mirrorNodePortWeb3:
     description: "Port for Mirror Node WEB3"
     required: false
-    default: "8545"
+    default: "80"
   installRelay:
     description: "Install JSON-RPC-Relay"
     required: false
