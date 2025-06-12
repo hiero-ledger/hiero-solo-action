@@ -18,6 +18,10 @@ inputs:
     description: "Port for Mirror Node gRPC"
     required: false
     default: "5600"
+  mirrorNodePortWeb3:
+    description: "Port for Mirror Node WEB3"
+    required: false
+    default: "8080"
   installRelay:
     description: "Install JSON-RPC-Relay"
     required: false
@@ -161,7 +165,7 @@ runs:
         kubectl get svc -n $SOLO_NAMESPACE
         # Port forward mirror node REST API (only if service exists)
         if kubectl get svc mirror-rest -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-rest -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortRest }}:80 &
+          kubectl port-forward svc/mirror-rest -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortRest }}:5551 &
         else
           echo "Mirror node service mirror-rest not found, skipping port-forward"
         fi
@@ -170,6 +174,12 @@ runs:
           kubectl port-forward svc/mirror-grpc -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortGrpc }}:5600 &
         else
           echo "Mirror node service mirror-grpc not found, skipping port-forward"
+        fi
+        # Port forward mirror node web3 (only if service exists)
+        if kubectl get svc mirror-web3   -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/mirror-web3 -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortWeb3 }}:8545 &
+        else
+          echo "Mirror node service mirror-web3 not found, skipping port-forward"
         fi
 
     - name: Deploy JSON-RPC-Relay
