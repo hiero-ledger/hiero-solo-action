@@ -159,7 +159,7 @@ runs:
         SOLO_NAMESPACE: solo
         SOLO_DEPLOYMENT: solo-deployment
       run: |
-        solo mirror-node deploy --deployment $SOLO_DEPLOYMENT --pinger
+        solo mirror-node deploy --deployment $SOLO_DEPLOYMENT
         # Debug: List services in the solo namespace
         echo "Listing services in namespace $SOLO_NAMESPACE:"
         kubectl get svc -n $SOLO_NAMESPACE
