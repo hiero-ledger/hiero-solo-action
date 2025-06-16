@@ -165,7 +165,7 @@ runs:
         kubectl get svc -n $SOLO_NAMESPACE
         # Port forward mirror node REST API (only if service exists)
         if kubectl get svc mirror-rest -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-rest -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortRest }}:5551 &
+          kubectl port-forward svc/mirror-rest -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortRest }}:80 &
         else
           echo "Mirror node service mirror-rest not found, skipping port-forward"
         fi
