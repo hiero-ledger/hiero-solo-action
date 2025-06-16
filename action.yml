@@ -18,8 +18,8 @@ inputs:
     description: "Port for Mirror Node gRPC"
     required: false
     default: "5600"
-  mirrorNodePortWeb3:
-    description: "Port for Mirror Node WEB3"
+  mirrorNodePortWeb3Rest:
+    description: "Port for Mirror Node WEB3 REST"
     required: false
     default: "8545"
   installRelay:
@@ -177,7 +177,7 @@ runs:
         fi
         # Port forward mirror node web3 (only if service exists)
         if kubectl get svc mirror-web3   -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-web3 -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortWeb3 }}:80 &
+          kubectl port-forward svc/mirror-web3 -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortWeb3Rest }}:80 &
         else
           echo "Mirror node service mirror-web3 not found, skipping port-forward"
         fi
