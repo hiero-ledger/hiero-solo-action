@@ -16,9 +16,10 @@ The GitHub action takes the following inputs:
 | Input          |  Required | Default |Description |
 |----------------|-----------|---------|-------------------------------|
 | `hieroVersion`|  false    | `v0.58.10` | Hiero consenus node version to use |
-| `installMirrorNode` |  false    | `false`   | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:8080`. |
-| `mirrorNodePortRest`|  false    | `8080` | Port for Mirror Node REST API |
+| `installMirrorNode` |  false    | `false`   | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:5551`. |
+| `mirrorNodePortRest`|  false    | `5551` | Port for Mirror Node REST API |
 | `mirrorNodePortGrpc`|  false    | `5600` | Port for Mirror Node gRPC |
+| `mirrorNodePortWeb3Rest`|  false    | `8545` | Port for Web3 REST API |
 | `installRelay` |  false    | `false`   | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process. |
 | `relayPort`|  false    | `7546` | Port for the JSON-RPC-Relay |
 

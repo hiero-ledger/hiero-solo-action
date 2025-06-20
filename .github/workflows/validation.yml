@@ -68,7 +68,7 @@ jobs:
           # Wait for the mirror node to be fully up and running
           sleep 10
 
-          RESPONSE=$(curl -s -w "%{http_code}" -X 'GET' 'http://localhost:8080/api/v1/network/nodes' -H 'accept: application/json' -o response.json)
+          RESPONSE=$(curl -s -w "%{http_code}" -X 'GET' 'http://localhost:5551/api/v1/network/nodes' -H 'accept: application/json' -o response.json)
 
           if [ "$RESPONSE" -ne 200 ]; then
             echo "❌ Error: API request failed with status code $RESPONSE"
