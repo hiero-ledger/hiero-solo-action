@@ -1,3 +1,6 @@
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/hiero-ledger/hiero-solo-action/badge)](https://api.scorecard.dev/projects/github.com/hiero-ledger/hiero-solo-action)
+[![CII Best Practices](https://bestpractices.coreinfrastructure.org/projects/10697/badge)](https://bestpractices.coreinfrastructure.org/projects/10697)
+
 # hiero-solo-action
 
 A GitHub Action for setting up a Hiero Solo network.
