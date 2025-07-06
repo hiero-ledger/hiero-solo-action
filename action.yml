@@ -13,7 +13,7 @@ inputs:
   mirrorNodeVersion:
     description: "Version of the mirror node to be used"
     required: false
-    default: "v0.131.0"
+    default: "v0.133.0"
   mirrorNodePortRest:
     description: "Port for Mirror Node REST API"
     required: false
