@@ -7,9 +7,13 @@ inputs:
     default: false
     type: boolean
   hieroVersion:
-    description: "Version of Hiero consensus node to be use."
+    description: "Version of Hiero consensus node to be used"
     required: false
     default: "v0.58.10"
+  mirrorNodeVersion:
+    description: "Version of the mirror node to be used"
+    required: false
+    default: "v0.131.0"
   mirrorNodePortRest:
     description: "Port for Mirror Node REST API"
     required: false
@@ -129,7 +133,7 @@ runs:
         # Generate node keys
         solo node keys --gossip-keys --tls-keys -i node1 --deployment $SOLO_DEPLOYMENT
 
-        # Setup the Solo cluster 
+        # Setup the Solo cluster
         solo cluster-ref setup -s $SOLO_CLUSTER_NAME
 
         # Deploy network
@@ -158,8 +162,9 @@ runs:
       env:
         SOLO_NAMESPACE: solo
         SOLO_DEPLOYMENT: solo-deployment
+        MIRROR_NODE_VERSION: ${{ inputs.mirrorNodeVersion }}
       run: |
-        solo mirror-node deploy --deployment $SOLO_DEPLOYMENT
+        solo mirror-node deploy --deployment $SOLO_DEPLOYMENT --mirror-node-version $MIRROR_NODE_VERSION
         # Debug: List services in the solo namespace
         echo "Listing services in namespace $SOLO_NAMESPACE:"
         kubectl get svc -n $SOLO_NAMESPACE
@@ -176,7 +181,7 @@ runs:
           echo "Mirror node service mirror-grpc not found, skipping port-forward"
         fi
         # Port forward mirror node web3 (only if service exists)
-        if kubectl get svc mirror-web3   -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+        if kubectl get svc mirror-web3 -n $SOLO_NAMESPACE >/dev/null 2>&1; then
           kubectl port-forward svc/mirror-web3 -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortWeb3Rest }}:80 &
         else
           echo "Mirror node service mirror-web3 not found, skipping port-forward"
