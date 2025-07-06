@@ -19,6 +19,7 @@ The GitHub action takes the following inputs:
 | Input          |  Required | Default |Description |
 |----------------|-----------|---------|-------------------------------|
 | `hieroVersion`|  false    | `v0.58.10` | Hiero consenus node version to use |
+| `mirrorNodeVersion`|  false    | `v0.133.0` | Mirror node version to use |
 | `installMirrorNode` |  false    | `false`   | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:5551`. |
 | `mirrorNodePortRest`|  false    | `5551` | Port for Mirror Node REST API |
 | `mirrorNodePortGrpc`|  false    | `5600` | Port for Mirror Node gRPC |
