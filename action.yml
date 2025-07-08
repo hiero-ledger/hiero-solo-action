@@ -104,7 +104,7 @@ runs:
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@0.38.0
+      run: npm install -g @hashgraph/solo@0.39.0
 
     - name: Deploy Solo Test Network
       shell: bash
