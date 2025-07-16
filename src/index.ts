@@ -67,12 +67,24 @@ async function deployMirrorNode() {
   );
   await exec(`kubectl get svc -n ${namespace}`);
 
+  //   const portForwardIfExists = async (service: string, portSpec: string) => {
+  //     try {
+  //       await exec(`kubectl get svc ${service} -n ${namespace}`);
+  //       await exec(
+  //         `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`
+  //       );
+  //     } catch (err) {
+  //       info(`Service ${service} not found, skipping port-forward`);
+  //     }
+  //   };
+
   const portForwardIfExists = async (service: string, portSpec: string) => {
     try {
-      await exec(`kubectl get svc ${service} -n ${namespace}`);
-      await exec(
-        `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`
-      );
+      await exec("kubectl", ["get", "svc", service, "-n", namespace]);
+      await exec("bash", [
+        "-c",
+        `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
+      ]);
     } catch (err) {
       info(`Service ${service} not found, skipping port-forward`);
     }
@@ -94,13 +106,28 @@ async function deployRelay() {
   await exec(`solo relay deploy -i node1 --deployment ${deployment}`);
   await exec(`kubectl get svc -n ${namespace}`);
 
+  //   try {
+  //     await exec(
+  //       `kubectl get svc relay-node1-hedera-json-rpc-relay -n ${namespace}`
+  //     );
+  //     await exec(
+  //       `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`
+  //     );
+  //   } catch (err) {
+  //     info("Relay service not found, skipping port-forward");
+  //   }
   try {
-    await exec(
-      `kubectl get svc relay-node1-hedera-json-rpc-relay -n ${namespace}`
-    );
-    await exec(
-      `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`
-    );
+    await exec("kubectl", [
+      "get",
+      "svc",
+      "relay-node1-hedera-json-rpc-relay",
+      "-n",
+      namespace,
+    ]);
+    await exec("bash", [
+      "-c",
+      `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`,
+    ]);
   } catch (err) {
     info("Relay service not found, skipping port-forward");
   }
@@ -127,7 +154,7 @@ async function createAccount(type: "ecdsa" | "ed25519") {
 
   const privateKeyCmd = `kubectl get secret account-key-${accountId} -n ${namespace} -o jsonpath='{.data.privateKey}' | base64 -d | xargs`;
   let privateKey = "";
-  await exec(privateKeyCmd, [], {
+  await exec("bash", ["-c", privateKeyCmd], {
     listeners: {
       stdout: (data) => {
         privateKey += data.toString();
