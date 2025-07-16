@@ -1,6 +1,6 @@
-name: The name of your action here
-description: Provide a description here
-author: Your name or organization here
+name: Hiero Solo Action
+description: Setup a Hiero Solo cluster
+author: Hiero Ledger
 
 # Branding
 branding:
