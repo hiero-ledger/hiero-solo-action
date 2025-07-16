@@ -165,7 +165,7 @@ async function createAccount(type: "ecdsa" | "ed25519") {
 
   const generateFlag = type === "ecdsa" ? "--generate-ecdsa-key" : "";
   await exec(
-    `solo account create ${generateFlag} --deployment ${deployment} > ${outputFile}`
+    `solo account create ${generateFlag} --deployment "${deployment} > ${outputFile}"`
   );
 
   const extractAccountJson = async () => {
