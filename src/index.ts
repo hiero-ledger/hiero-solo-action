@@ -110,7 +110,7 @@ async function createAccount(type: "ecdsa" | "ed25519") {
   const namespace = "solo";
   const deployment = "solo-deployment";
   const outputFile = `account_create_output_${type}.txt`;
-  const id = `create-${type}`;
+  //   const id = `create-${type}`;
 
   const generateFlag = type === "ecdsa" ? "--generate-ecdsa-key" : "";
   await exec(
