@@ -48,31 +48,22 @@ inputs:
 outputs:
   accountId:
     description: "Account ID of the generated ED25519 account (default for simplicity)"
-    value: ${{ steps.create-ed25519.outputs.accountId }}
   publicKey:
     description: "Public key of the generated ED25519 account (default for simplicity)"
-    value: ${{ steps.create-ed25519.outputs.publicKey }}
   privateKey:
     description: "Private key of the generated ED25519 account (default for simplicity)"
-    value: ${{ steps.create-ed25519.outputs.privateKey }}
   ecdsaAccountId:
     description: "ECDSA account id of generated account"
-    value: ${{ steps.create-ecdsa.outputs.accountId }}
   ecdsaPublicKey:
     description: "ECDSA public key of generated account"
-    value: ${{ steps.create-ecdsa.outputs.publicKey }}
   ecdsaPrivateKey:
     description: "ECDSA private key of generated account"
-    value: ${{ steps.create-ecdsa.outputs.privateKey }}
   ed25519AccountId:
     description: "ED25519 account id of generated account"
-    value: ${{ steps.create-ed25519.outputs.accountId }}
   ed25519PublicKey:
     description: "ED25519 public key of generated account"
-    value: ${{ steps.create-ed25519.outputs.publicKey }}
   ed25519PrivateKey:
     description: "ED25519 private key of generated account"
-    value: ${{ steps.create-ed25519.outputs.privateKey }}
 
 runs:
   using: node20
