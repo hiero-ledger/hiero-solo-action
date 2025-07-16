@@ -191,9 +191,20 @@ async function createAccount(type: "ecdsa" | "ed25519") {
     `solo account update --account-id ${accountId} --hbar-amount 10000000 --deployment ${deployment}`
   );
 
-  setOutput("accountId", accountId);
-  setOutput("publicKey", publicKey);
-  setOutput("privateKey", privateKey);
+  if (type === "ecdsa") {
+    setOutput("ecdsaAccountId", accountId);
+    setOutput("ecdsaPublicKey", publicKey);
+    setOutput("ecdsaPrivateKey", privateKey);
+  } else {
+    setOutput("ed25519AccountId", accountId);
+    setOutput("ed25519PublicKey", publicKey);
+    setOutput("ed25519PrivateKey", privateKey);
+
+    // Also set generic outputs for backward compatibility
+    setOutput("accountId", accountId);
+    setOutput("publicKey", publicKey);
+    setOutput("privateKey", privateKey);
+  }
 }
 
 async function run() {
