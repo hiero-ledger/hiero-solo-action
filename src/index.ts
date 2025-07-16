@@ -164,9 +164,10 @@ async function createAccount(type: "ecdsa" | "ed25519") {
   //   const id = `create-${type}`;
 
   const generateFlag = type === "ecdsa" ? "--generate-ecdsa-key" : "";
-  await exec(
-    `solo account create ${generateFlag} --deployment "${deployment}" > ${outputFile}`
-  );
+  await exec("bash", [
+    "-c",
+    `solo account create ${generateFlag} --deployment "${deployment}" > ${outputFile}`,
+  ]);
 
   const extractAccountJson = async () => {
     const content = fs.readFileSync(outputFile, "utf-8");
