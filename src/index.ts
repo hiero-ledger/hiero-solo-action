@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import { exec } from "@actions/exec";
 import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
+import { spawn } from "child_process";
 
 function extractAccountAsJson(inputText: string) {
   const jsonRegex =
@@ -78,13 +79,36 @@ async function deployMirrorNode() {
   //     }
   //   };
 
+  //   const portForwardIfExists = async (service: string, portSpec: string) => {
+  //     try {
+  //       await exec("kubectl", ["get", "svc", service, "-n", namespace]);
+  //       await exec("bash", [
+  //         "-c",
+  //         `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
+  //       ]);
+  //     } catch (err) {
+  //       info(`Service ${service} not found, skipping port-forward`);
+  //     }
+  //   };
+
   const portForwardIfExists = async (service: string, portSpec: string) => {
     try {
+      // Check if the service exists
       await exec("kubectl", ["get", "svc", service, "-n", namespace]);
-      await exec("bash", [
-        "-c",
-        `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
-      ]);
+
+      // Use spawn for background port-forward
+      const portForwardProcess = spawn(
+        "kubectl",
+        ["port-forward", `svc/${service}`, "-n", namespace, portSpec],
+        {
+          detached: true,
+          stdio: "ignore",
+        }
+      );
+
+      portForwardProcess.unref(); // Detach so it keeps running
+
+      info(`Port-forward started for ${service} on ${portSpec}`);
     } catch (err) {
       info(`Service ${service} not found, skipping port-forward`);
     }
