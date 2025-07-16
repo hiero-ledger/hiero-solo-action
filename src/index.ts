@@ -44,9 +44,10 @@ async function deploySoloTestNetwork() {
   await exec(`solo node start -i node1 --deployment ${deployment}`);
   await exec(`kubectl get svc -n ${namespace}`);
   try {
-    await exec(
-      `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`
-    );
+    await exec("bash", [
+      "-c",
+      `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`,
+    ]);
   } catch (err) {
     info("HAProxy service not found, skipping port-forward");
   }
