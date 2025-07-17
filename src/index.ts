@@ -1,6 +1,7 @@
 import * as fs from "fs";
 import { exec } from "@actions/exec";
 import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
+import { spawn } from "child_process";
 
 /**
  * Extracts the account information from the output text
@@ -15,6 +16,33 @@ function extractAccountAsJson(inputText: string): string {
     return match[0];
   } else {
     throw new Error("No JSON block found in output");
+  }
+}
+
+/**
+ * Port forwards a service if it exists
+ * This port forwards a service if it exists in the namespace
+ * @param service - The name of the service to port forward
+ * @param portSpec - The port specification to use for the port forward
+ * @param namespace - The namespace to port forward the service from
+ */
+async function portForwardIfExists(
+  service: string,
+  portSpec: string,
+  namespace: string
+) {
+  try {
+    await exec("kubectl", ["get", "svc", service, "-n", namespace]);
+    info(`Service ${service} exist`);
+    const portForwardProcess = spawn(
+      "kubectl",
+      ["port-forward", `svc/${service}`, "-n", namespace, portSpec],
+      { detached: true, stdio: "ignore" }
+    );
+    portForwardProcess.unref();
+    info(`Port-forward started for ${service} on ${portSpec}`);
+  } catch (err) {
+    info(`Service ${service} not found, skipping port-forward`);
   }
 }
 
@@ -164,28 +192,28 @@ async function deployMirrorNode(): Promise<void> {
    * @param portSpec - The port specification to use for the port forward
    * @returns void
    */
-  const portForwardIfExists = async (service: string, portSpec: string) => {
-    try {
-      await exec("kubectl", ["get", "svc", service, "-n", namespace]);
-      info(`Service ${service} exist 99999999`);
+  //   const portForwardIfExists = async (service: string, portSpec: string) => {
+  //     try {
+  //       await exec("kubectl", ["get", "svc", service, "-n", namespace]);
+  //       info(`Service ${service} exist 99999999`);
 
-      await exec("bash", [
-        "-c",
-        `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
-      ]);
-      info(`Port forward started for ${service} on ${portSpec}`);
-    } catch (err) {
-      info(`Service ${service} not found, skipping port-forward`);
-    }
-  };
+  //       await exec("bash", [
+  //         "-c",
+  //         `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
+  //       ]);
+  //       info(`Port forward started for ${service} on ${portSpec}`);
+  //     } catch (err) {
+  //       info(`Service ${service} not found, skipping port-forward`);
+  //     }
+  //   };
 
   /**
    * Port forward the Mirror Node services
    * This port forwards the Mirror Node services to the local machine
    */
-  await portForwardIfExists("mirror-rest", `${portRest}:80`);
-  await portForwardIfExists("mirror-grpc", `${portGrpc}:5600`);
-  await portForwardIfExists("mirror-web3", `${portWeb3}:80`);
+  await portForwardIfExists("mirror-rest", `${portRest}:80`, namespace);
+  await portForwardIfExists("mirror-grpc", `${portGrpc}:5600`, namespace);
+  await portForwardIfExists("mirror-web3", `${portWeb3}:80`, namespace);
 }
 
 /**
@@ -218,17 +246,15 @@ async function deployRelay(): Promise<void> {
    * This port forwards the Relay service to the local machine
    */
   try {
-    await exec("kubectl", [
-      "get",
-      "svc",
+    await portForwardIfExists(
       "relay-node1-hedera-json-rpc-relay",
-      "-n",
-      namespace,
-    ]);
-    await exec("bash", [
-      "-c",
-      `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`,
-    ]);
+      `${relayPort}:7546`,
+      namespace
+    );
+    // await exec("bash", [
+    //   "-c",
+    //   `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`,
+    // ]);
   } catch (err) {
     info("Relay service not found, skipping port-forward");
   }
