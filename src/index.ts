@@ -1,7 +1,7 @@
 import * as fs from "fs";
 import { exec } from "@actions/exec";
-import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
 import { spawn } from "child_process";
+import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
 
 /**
  * Extracts the account information from the output text
@@ -59,7 +59,6 @@ async function deploySoloTestNetwork(): Promise<void> {
   const namespace = "solo";
   const deployment = "solo-deployment";
   const hieroVersion = getInput("hieroVersion");
-  //   const soloClusterSetupNamespace = "solo-cluster";
 
   saveState("clusterName", clusterName);
 
