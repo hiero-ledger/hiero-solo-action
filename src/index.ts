@@ -142,12 +142,7 @@ async function deploySoloTestNetwork(): Promise<void> {
    * This port forwards the HAProxy service to the local machine
    */
   try {
-    await exec("kubectl", ["get", "svc", "haproxy-node1-svc", "-n", namespace]);
-    await exec("bash", [
-      "-c",
-      `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`,
-    ]);
-    info("HAProxy service port-forwarded");
+    await portForwardIfExists("haproxy-node1-svc", "50211:50211", namespace);
   } catch (err) {
     info("HAProxy service not found, skipping port-forward");
   }
@@ -182,30 +177,6 @@ async function deployMirrorNode(): Promise<void> {
    * This lists the services in the solo namespace
    */
   await exec(`kubectl get svc -n ${namespace}`);
-
-  /**
-   * Port forward if the service exists
-   * This port forwards the service to the local machine if it exists.
-   * It checks if the service exists, and if it does, it port forwards the service to the local machine.
-   * If the service does not exist, it logs a message and does not port forward.
-   * @param service - The name of the service to port forward
-   * @param portSpec - The port specification to use for the port forward
-   * @returns void
-   */
-  //   const portForwardIfExists = async (service: string, portSpec: string) => {
-  //     try {
-  //       await exec("kubectl", ["get", "svc", service, "-n", namespace]);
-  //       info(`Service ${service} exist 99999999`);
-
-  //       await exec("bash", [
-  //         "-c",
-  //         `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
-  //       ]);
-  //       info(`Port forward started for ${service} on ${portSpec}`);
-  //     } catch (err) {
-  //       info(`Service ${service} not found, skipping port-forward`);
-  //     }
-  //   };
 
   /**
    * Port forward the Mirror Node services
@@ -251,10 +222,6 @@ async function deployRelay(): Promise<void> {
       `${relayPort}:7546`,
       namespace
     );
-    // await exec("bash", [
-    //   "-c",
-    //   `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`,
-    // ]);
   } catch (err) {
     info("Relay service not found, skipping port-forward");
   }
