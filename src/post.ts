@@ -1,9 +1,9 @@
-import * as core from "@actions/core";
-import * as exec from "@actions/exec";
+import { getState, warning } from "@actions/core";
+import { exec } from "@actions/exec";
 
 async function cleanup() {
-  const clusterName = core.getState("clusterName") || "solo-e2e";
-  await exec.exec(`kind delete cluster --name ${clusterName}`);
+  const clusterName = getState("clusterName") || "solo-e2e";
+  await exec(`kind delete cluster --name ${clusterName}`);
 }
 
-cleanup().catch((error) => core.warning(`Cleanup failed: ${error.message}`));
+cleanup().catch((error) => warning(`Cleanup failed: ${error.message}`));
