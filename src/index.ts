@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import { exec } from "@actions/exec";
-import { setFailed, saveState, getInput, setOutput } from "@actions/core";
+import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
 
 /**
  * Extracts the account information from the output text
@@ -144,9 +144,9 @@ async function deployMirrorNode(): Promise<void> {
   const namespace = "solo";
   const deployment = "solo-deployment";
   const version = getInput("mirrorNodeVersion");
-  //   const portRest = getInput("mirrorNodePortRest");
-  //   const portGrpc = getInput("mirrorNodePortGrpc");
-  //   const portWeb3 = getInput("mirrorNodePortWeb3Rest");
+  const portRest = getInput("mirrorNodePortRest");
+  const portGrpc = getInput("mirrorNodePortGrpc");
+  const portWeb3 = getInput("mirrorNodePortWeb3Rest");
 
   /**
    * Deploy the Mirror Node
@@ -171,25 +171,27 @@ async function deployMirrorNode(): Promise<void> {
    * @param portSpec - The port specification to use for the port forward
    * @returns void
    */
-  //   const portForwardIfExists = async (service: string, portSpec: string) => {
-  //     try {
-  //       await exec("kubectl", ["get", "svc", service, "-n", namespace]);
-  //       await exec("bash", [
-  //         "-c",
-  //         `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
-  //       ]);
-  //     } catch (err) {
-  //       info(`Service ${service} not found, skipping port-forward`);
-  //     }
-  //   };
+  const portForwardIfExists = async (service: string, portSpec: string) => {
+    try {
+      await exec("kubectl", ["get", "svc", service, "-n", namespace]);
+      info(`Service ${service} exist 99999999`);
+
+      await exec("bash", [
+        "-c",
+        `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
+      ]);
+    } catch (err) {
+      info(`Service ${service} not found, skipping port-forward`);
+    }
+  };
 
   /**
    * Port forward the Mirror Node services
    * This port forwards the Mirror Node services to the local machine
    */
-  //   await portForwardIfExists("mirror-rest", `${portRest}:80`);
-  //   await portForwardIfExists("mirror-grpc", `${portGrpc}:5600`);
-  //   await portForwardIfExists("mirror-web3", `${portWeb3}:80`);
+  await portForwardIfExists("mirror-rest", `${portRest}:80`);
+  await portForwardIfExists("mirror-grpc", `${portGrpc}:5600`);
+  await portForwardIfExists("mirror-web3", `${portWeb3}:80`);
 }
 
 /**
