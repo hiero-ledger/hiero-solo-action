@@ -1,7 +1,6 @@
 import * as fs from "fs";
 import { exec } from "@actions/exec";
 import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
-import { spawn } from "child_process";
 
 function extractAccountAsJson(inputText: string) {
   const jsonRegex =
@@ -22,28 +21,60 @@ async function deploySoloTestNetwork() {
 
   saveState("clusterName", clusterName);
 
+  // Create a Kubernetes cluster using kind
   await exec(`kind create cluster -n ${clusterName}`);
+
+  // Initialize the Solo CLI configuration
   await exec(`solo init`);
+
+  // Connect the Solo CLI to the kind cluster using a cluster reference name
   await exec(
     `solo cluster-ref connect --cluster-ref kind-${clusterName} --context kind-${clusterName}`
   );
+
+  // Create deployment
   await exec(
     `solo deployment create -n ${namespace} --deployment ${deployment}`
   );
+
+  // Add the kind cluster to the deployment with 1 consensus node
   await exec(
     `solo deployment add-cluster --deployment ${deployment} --cluster-ref kind-${clusterName} --num-consensus-nodes 1`
   );
+
+  // Generate keys for the node
   await exec(
     `solo node keys --gossip-keys --tls-keys -i node1 --deployment ${deployment}`
   );
+
+  // Setup the Solo cluster
   await exec(`solo cluster-ref setup -s ${clusterName}`);
+
+  // Deploy the network
   await exec(`solo network deploy -i node1 --deployment ${deployment}`);
+
+  // Setup the node
   await exec(
     `solo node setup -i node1 --deployment ${deployment} -t ${hieroVersion} --quiet-mode`
   );
+
+  // Start the node
   await exec(`solo node start -i node1 --deployment ${deployment}`);
+
+  // Debug: List services in the solo namespace
   await exec(`kubectl get svc -n ${namespace}`);
+
+  // Port forward the HAProxy service
+  //   try {
+  //     await exec("bash", [
+  //       "-c",
+  //       `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`,
+  //     ]);
+  //   } catch (err) {
+  //     info("HAProxy service not found, skipping port-forward");
+  //   }
   try {
+    await exec("kubectl", ["get", "svc", "haproxy-node1-svc", "-n", namespace]);
     await exec("bash", [
       "-c",
       `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`,
@@ -80,40 +111,40 @@ async function deployMirrorNode() {
   //     }
   //   };
 
-  //   const portForwardIfExists = async (service: string, portSpec: string) => {
-  //     try {
-  //       await exec("kubectl", ["get", "svc", service, "-n", namespace]);
-  //       await exec("bash", [
-  //         "-c",
-  //         `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
-  //       ]);
-  //     } catch (err) {
-  //       info(`Service ${service} not found, skipping port-forward`);
-  //     }
-  //   };
-
   const portForwardIfExists = async (service: string, portSpec: string) => {
     try {
-      // Check if the service exists
       await exec("kubectl", ["get", "svc", service, "-n", namespace]);
-
-      // Use spawn for background port-forward
-      const portForwardProcess = spawn(
-        "kubectl",
-        ["port-forward", `svc/${service}`, "-n", namespace, portSpec],
-        {
-          detached: true,
-          stdio: "ignore",
-        }
-      );
-
-      portForwardProcess.unref(); // Detach so it keeps running
-
-      info(`Port-forward started for ${service} on ${portSpec}`);
+      await exec("bash", [
+        "-c",
+        `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
+      ]);
     } catch (err) {
       info(`Service ${service} not found, skipping port-forward`);
     }
   };
+
+  //   const portForwardIfExists = async (service: string, portSpec: string) => {
+  //     try {
+  //       // Check if the service exists
+  //       await exec("kubectl", ["get", "svc", service, "-n", namespace]);
+
+  //       // Use spawn for background port-forward
+  //       const portForwardProcess = spawn(
+  //         "kubectl",
+  //         ["port-forward", `svc/${service}`, "-n", namespace, portSpec],
+  //         {
+  //           detached: true,
+  //           stdio: "ignore",
+  //         }
+  //       );
+
+  //       portForwardProcess.unref(); // Detach so it keeps running
+
+  //       info(`Port-forward started for ${service} on ${portSpec}`);
+  //     } catch (err) {
+  //       info(`Service ${service} not found, skipping port-forward`);
+  //     }
+  //   };
 
   await portForwardIfExists("mirror-rest", `${portRest}:80`);
   await portForwardIfExists("mirror-grpc", `${portGrpc}:5600`);
