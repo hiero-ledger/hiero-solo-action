@@ -1,4 +1,4 @@
-import * as fs from "fs";
+import { readFileSync } from "fs";
 import { exec } from "@actions/exec";
 import { spawn } from "child_process";
 import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
@@ -249,7 +249,7 @@ async function createAccount(type: "ecdsa" | "ed25519"): Promise<void> {
   ]);
 
   const extractAccountJson = async () => {
-    const content = fs.readFileSync(outputFile, "utf-8");
+    const content = readFileSync(outputFile, "utf-8");
     return extractAccountAsJson(content);
   };
 
