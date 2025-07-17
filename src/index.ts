@@ -1,6 +1,6 @@
 import * as fs from "fs";
 import { exec } from "@actions/exec";
-import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
+import { setFailed, saveState, getInput, setOutput } from "@actions/core";
 
 /**
  * Extracts the account information from the output text
