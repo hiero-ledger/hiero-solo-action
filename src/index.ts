@@ -31,6 +31,7 @@ async function deploySoloTestNetwork(): Promise<void> {
   const namespace = "solo";
   const deployment = "solo-deployment";
   const hieroVersion = getInput("hieroVersion");
+  //   const soloClusterSetupNamespace = "solo-cluster";
 
   saveState("clusterName", clusterName);
 
@@ -122,13 +123,13 @@ async function deploySoloTestNetwork(): Promise<void> {
   //     info("HAProxy service not found, skipping port-forward");
   //   }
 
-  try {
-    await exec(
-      `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`
-    );
-  } catch (err) {
-    info("HAProxy service not found, skipping port-forward");
-  }
+  //   try {
+  //     await exec(
+  //       `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`
+  //     );
+  //   } catch (err) {
+  //     info("HAProxy service not found, skipping port-forward");
+  //   }
 }
 
 /**
@@ -143,9 +144,9 @@ async function deployMirrorNode(): Promise<void> {
   const namespace = "solo";
   const deployment = "solo-deployment";
   const version = getInput("mirrorNodeVersion");
-  const portRest = getInput("mirrorNodePortRest");
-  const portGrpc = getInput("mirrorNodePortGrpc");
-  const portWeb3 = getInput("mirrorNodePortWeb3Rest");
+  //   const portRest = getInput("mirrorNodePortRest");
+  //   const portGrpc = getInput("mirrorNodePortGrpc");
+  //   const portWeb3 = getInput("mirrorNodePortWeb3Rest");
 
   /**
    * Deploy the Mirror Node
@@ -170,25 +171,25 @@ async function deployMirrorNode(): Promise<void> {
    * @param portSpec - The port specification to use for the port forward
    * @returns void
    */
-  const portForwardIfExists = async (service: string, portSpec: string) => {
-    try {
-      await exec("kubectl", ["get", "svc", service, "-n", namespace]);
-      await exec("bash", [
-        "-c",
-        `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
-      ]);
-    } catch (err) {
-      info(`Service ${service} not found, skipping port-forward`);
-    }
-  };
+  //   const portForwardIfExists = async (service: string, portSpec: string) => {
+  //     try {
+  //       await exec("kubectl", ["get", "svc", service, "-n", namespace]);
+  //       await exec("bash", [
+  //         "-c",
+  //         `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
+  //       ]);
+  //     } catch (err) {
+  //       info(`Service ${service} not found, skipping port-forward`);
+  //     }
+  //   };
 
   /**
    * Port forward the Mirror Node services
    * This port forwards the Mirror Node services to the local machine
    */
-  await portForwardIfExists("mirror-rest", `${portRest}:80`);
-  await portForwardIfExists("mirror-grpc", `${portGrpc}:5600`);
-  await portForwardIfExists("mirror-web3", `${portWeb3}:80`);
+  //   await portForwardIfExists("mirror-rest", `${portRest}:80`);
+  //   await portForwardIfExists("mirror-grpc", `${portGrpc}:5600`);
+  //   await portForwardIfExists("mirror-web3", `${portWeb3}:80`);
 }
 
 /**
@@ -202,7 +203,7 @@ async function deployRelay(): Promise<void> {
 
   const namespace = "solo";
   const deployment = "solo-deployment";
-  const relayPort = getInput("relayPort");
+  //   const relayPort = getInput("relayPort");
 
   /**
    * Deploy the Relay
@@ -220,21 +221,21 @@ async function deployRelay(): Promise<void> {
    * Port forward the Relay service
    * This port forwards the Relay service to the local machine
    */
-  try {
-    await exec("kubectl", [
-      "get",
-      "svc",
-      "relay-node1-hedera-json-rpc-relay",
-      "-n",
-      namespace,
-    ]);
-    await exec("bash", [
-      "-c",
-      `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`,
-    ]);
-  } catch (err) {
-    info("Relay service not found, skipping port-forward");
-  }
+  //   try {
+  //     await exec("kubectl", [
+  //       "get",
+  //       "svc",
+  //       "relay-node1-hedera-json-rpc-relay",
+  //       "-n",
+  //       namespace,
+  //     ]);
+  //     await exec("bash", [
+  //       "-c",
+  //       `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`,
+  //     ]);
+  //   } catch (err) {
+  //     info("Relay service not found, skipping port-forward");
+  //   }
 }
 
 /**
