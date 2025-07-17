@@ -113,23 +113,16 @@ async function deploySoloTestNetwork(): Promise<void> {
    * Port forward the HAProxy service
    * This port forwards the HAProxy service to the local machine
    */
-  //   try {
-  //     await exec("kubectl", ["get", "svc", "haproxy-node1-svc", "-n", namespace]);
-  //     await exec("bash", [
-  //       "-c",
-  //       `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`,
-  //     ]);
-  //   } catch (err) {
-  //     info("HAProxy service not found, skipping port-forward");
-  //   }
-
-  //   try {
-  //     await exec(
-  //       `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`
-  //     );
-  //   } catch (err) {
-  //     info("HAProxy service not found, skipping port-forward");
-  //   }
+  try {
+    await exec("kubectl", ["get", "svc", "haproxy-node1-svc", "-n", namespace]);
+    await exec("bash", [
+      "-c",
+      `kubectl port-forward svc/haproxy-node1-svc -n ${namespace} 50211:50211 &`,
+    ]);
+    info("HAProxy service port-forwarded");
+  } catch (err) {
+    info("HAProxy service not found, skipping port-forward");
+  }
 }
 
 /**
@@ -180,6 +173,7 @@ async function deployMirrorNode(): Promise<void> {
         "-c",
         `kubectl port-forward svc/${service} -n ${namespace} ${portSpec} &`,
       ]);
+      info(`Port forward started for ${service} on ${portSpec}`);
     } catch (err) {
       info(`Service ${service} not found, skipping port-forward`);
     }
@@ -205,7 +199,7 @@ async function deployRelay(): Promise<void> {
 
   const namespace = "solo";
   const deployment = "solo-deployment";
-  //   const relayPort = getInput("relayPort");
+  const relayPort = getInput("relayPort");
 
   /**
    * Deploy the Relay
@@ -223,21 +217,21 @@ async function deployRelay(): Promise<void> {
    * Port forward the Relay service
    * This port forwards the Relay service to the local machine
    */
-  //   try {
-  //     await exec("kubectl", [
-  //       "get",
-  //       "svc",
-  //       "relay-node1-hedera-json-rpc-relay",
-  //       "-n",
-  //       namespace,
-  //     ]);
-  //     await exec("bash", [
-  //       "-c",
-  //       `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`,
-  //     ]);
-  //   } catch (err) {
-  //     info("Relay service not found, skipping port-forward");
-  //   }
+  try {
+    await exec("kubectl", [
+      "get",
+      "svc",
+      "relay-node1-hedera-json-rpc-relay",
+      "-n",
+      namespace,
+    ]);
+    await exec("bash", [
+      "-c",
+      `kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${namespace} ${relayPort}:7546 &`,
+    ]);
+  } catch (err) {
+    info("Relay service not found, skipping port-forward");
+  }
 }
 
 /**
