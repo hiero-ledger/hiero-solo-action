@@ -2,6 +2,9 @@
 # Create a Kubernetes cluster using kind
 kind create cluster -n $SOLO_CLUSTER_NAME
 
+# Create kubectl config file
+kind get kubeconfig --name solo-e2e > ~/.kube/config
+
 # Initialize the Solo CLI configuration
 solo init
 
