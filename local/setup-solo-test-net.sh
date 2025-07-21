@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # Create a Kubernetes cluster using kind
 kind create cluster -n $SOLO_CLUSTER_NAME
 
