@@ -8,10 +8,14 @@ RUN tar xzvf ./docker.tgz
 RUN wget -O ./kubectl "https://dl.k8s.io/release/v1.33.3/bin/linux/amd64/kubectl"
 RUN chmod +x ./kubectl
 
+RUN wget -O ./helm.tgz https://get.helm.sh/helm-v3.17.4-linux-amd64.tar.gz
+RUN tar xzvf ./helm.tgz
+
 FROM node:22-alpine
 COPY --from=installer ./kind /usr/local/bin/kind
 COPY --from=installer ./docker/docker /usr/local/bin/docker
 COPY --from=installer ./kubectl /usr/local/bin/kubectl
+COPY --from=installer ./linux-amd64 /usr/local/bin/helm
 RUN npm install -g @hashgraph/solo@0.39.0
 COPY ./setup-solo-test-net.sh ./setup-solo-test-net.sh
 RUN chmod +x ./setup-solo-test-net.sh
