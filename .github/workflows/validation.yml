@@ -6,7 +6,7 @@ on:
       - main
 
 jobs:
-  validate-hedera-outputs:
+  validate-outputs:
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -17,11 +17,11 @@ jobs:
       - name: 🚀 Checkout Repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: ⚙️ Setup Hedera Solo
+      - name: ⚙️ Setup Hiero Solo
         uses: ./
         id: solo
 
-      - name: ✅ Validate Hedera Solo Outputs
+      - name: ✅ Validate Hiero Solo Outputs
         run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
         env:
           ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
@@ -45,7 +45,7 @@ jobs:
       - name: 🚀 Checkout Repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: ⚙️ Setup Hedera Solo with MirrorNode
+      - name: ⚙️ Setup Hiero Solo with MirrorNode
         uses: ./
         with:
           installMirrorNode: true
@@ -91,7 +91,7 @@ jobs:
       - name: 🚀 Checkout Repo
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - name: ⚙️ Setup Hedera Solo with JSON-RPC Relay
+      - name: ⚙️ Setup Hiero Solo with JSON-RPC Relay
         uses: ./
         with:
           installRelay: true
