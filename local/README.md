@@ -16,7 +16,7 @@ You have two options to run a local solo test network:
 1. with Docker Compose
 
 
-## Plain Docker
+### Plain Docker
 
 First at all, you have to build the Docker image:
 
@@ -49,9 +49,18 @@ After building the Docker image, we can run it to set up a local Solo Test Netwo
 Both flags (`-v /var/run/docker.sock:/var/run/docker.sock --network host`) are important to start the solo test network in a K8s cluster directly on your host machine.
 
 
-## Docker Compose
+### Docker Compose
 If you don't want to care about building a Docker image, we prepare a `compose.yaml` that automatically build and run the container, that is defined in `Dockerfile`.
 
 ```shell
 docker compose up
+```
+
+## How to clean up the local Solo Test network
+
+As you mention, the Solo test network is still running, even through the solo-runner stops.
+If you want to clean up the local Solo test network, you have to delete the K8s cluster:
+
+```shell
+docker rm -f solo-e2e-control-plane
 ```
