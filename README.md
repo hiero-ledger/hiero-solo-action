@@ -52,7 +52,7 @@ The GitHub action takes the following inputs:
 - name: Setup Hiero Solo
   uses: hiero-ledger/hiero-solo-action@v0.8
   id: solo
-  
+
 - name: Use Hiero Solo
   run: |
     echo "Account ID: ${{ steps.solo.outputs.accountId }}"
@@ -66,7 +66,7 @@ The GitHub action takes the following inputs:
 - name: Setup Hiero Solo
   uses: hiero-ledger/hiero-solo-action@v0.8
   id: solo
-  
+
 - name: Use Hiero Solo
   run: |
     echo "Account ID: ${{ steps.solo.outputs.ecdsaAccountId }}"
@@ -80,13 +80,17 @@ The GitHub action takes the following inputs:
 - name: Setup Hiero Solo
   uses: hiero-ledger/hiero-solo-action@v0.8
   id: solo
-  
+
 - name: Use Hiero Solo
   run: |
     echo "Account ID: ${{ steps.solo.outputs.ed25519AccountId }}"
     echo "Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
     echo "Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
 ```
+
+# Local Solo Test Network
+
+The [README.md](./local/README.md) describes how to set up a local solo test network only with Docker.
 
 # Tributes
 

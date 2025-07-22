@@ -26,9 +26,9 @@ RUN npm install -g @hashgraph/solo@0.39.0
 COPY ./setup-solo-test-net.sh ./setup-solo-test-net.sh
 RUN chmod +x ./setup-solo-test-net.sh
 
-ARG SOLO_CLUSTER_NAME=solo-e2e
-ARG SOLO_NAMESPACE=solo
-ARG SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
-ARG SOLO_DEPLOYMENT=solo-deployment
+ENV SOLO_CLUSTER_NAME=solo-e2e
+ENV SOLO_NAMESPACE=solo
+ENV SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
+ENV SOLO_DEPLOYMENT=solo-deployment
 ARG HIERO_VERSION=v0.63.7
 ENTRYPOINT [ "./setup-solo-test-net.sh"]
