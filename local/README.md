@@ -21,8 +21,10 @@ You have two options to run a local solo test network:
 First at all, you have to build the Docker image:
 
 ```shell
-docker build -t hiero/solo-runner .
+docker build -t hiero/solo-runner . --build-context gh=..
 ```
+
+The flag `--build-context` is important to copy files from the GH action
 
 The versions and some settings of the contained tools can be overriden during the build:
 
@@ -53,5 +55,8 @@ Both flags (`-v /var/run/docker.sock:/var/run/docker.sock --network host`) are i
 If you don't want to care about building a Docker image, we prepare a `compose.yaml` that automatically build and run the container, that is defined in `Dockerfile`.
 
 ```shell
-docker compose up
+docker compose up --build
 ```
+
+The flag `--build` is optional.
+It forces to build the Docker image at every run.

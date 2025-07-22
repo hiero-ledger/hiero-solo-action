@@ -22,13 +22,22 @@ COPY --from=installer ./kubectl /usr/local/bin/kubectl
 COPY --from=installer ./linux-amd64 /usr/local/bin/helm
 
 RUN npm install -g @hashgraph/solo@0.39.0
+RUN apk add --update --no-cache python3 jq
 
 COPY ./setup-solo-test-net.sh ./setup-solo-test-net.sh
 RUN chmod +x ./setup-solo-test-net.sh
+
+COPY ./create-ecdsa-account.sh ./create-ecdsa-account.sh
+COPY --from=gh ./extractAccountAsJson.py ./extractAccountAsJson.py
+RUN chmod +x ./create-ecdsa-account.sh
+
+COPY ./all-in-setup.sh ./all-in-setup.sh
+RUN chmod +x ./all-in-setup.sh
+
 
 ENV SOLO_CLUSTER_NAME=solo-e2e
 ENV SOLO_NAMESPACE=solo
 ENV SOLO_CLUSTER_SETUP_NAMESPACE=solo-cluster
 ENV SOLO_DEPLOYMENT=solo-deployment
 ARG HIERO_VERSION=v0.63.7
-ENTRYPOINT [ "./setup-solo-test-net.sh"]
+ENTRYPOINT [ "./all-in-setup.sh"]
