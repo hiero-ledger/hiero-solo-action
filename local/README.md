@@ -16,7 +16,7 @@ You have two options to run a local solo test network:
 1. with Docker Compose
 
 
-## Plain Docker
+### Plain Docker
 
 First at all, you have to build the Docker image:
 
@@ -51,7 +51,7 @@ After building the Docker image, we can run it to set up a local Solo Test Netwo
 Both flags (`-v /var/run/docker.sock:/var/run/docker.sock --network host`) are important to start the solo test network in a K8s cluster directly on your host machine.
 
 
-## Docker Compose
+### Docker Compose
 If you don't want to care about building a Docker image, we prepare a `compose.yaml` that automatically build and run the container, that is defined in `Dockerfile`.
 
 ```shell
@@ -60,3 +60,9 @@ docker compose up --build
 
 The flag `--build` is optional.
 It forces to build the Docker image at every run.
+
+
+## Interaction with the Local Solo Test Network
+
+### Access to HAProxy
+You can interact with the internal HAProxy via `localhost:50211`from your host machine.
