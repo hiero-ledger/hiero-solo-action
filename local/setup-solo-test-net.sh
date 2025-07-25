@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 # Create a Kubernetes cluster using kind
-kind create cluster -n $SOLO_CLUSTER_NAME
+kind create cluster -n $SOLO_CLUSTER_NAME --config=./kind-config.yaml
 
 # Create kubectl config file
 kind get kubeconfig --name solo-e2e > ~/.kube/config
@@ -38,7 +38,8 @@ kubectl get svc -n $SOLO_NAMESPACE
 
 # Port forward HAProxy (only if service exists)
 if kubectl get svc haproxy-node1-svc -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-  kubectl port-forward svc/haproxy-node1-svc -n $SOLO_NAMESPACE 50211:50211 &
+    kubectl patch svc haproxy-node1-svc -n $SOLO_NAMESPACE --patch-file haproxy-svc-patch.yaml
+    echo "HAProxy service haproxy-node1-svc is available under localhost:50211"
 else
   echo "HAProxy service haproxy-node1-svc not found, skipping port-forward"
 fi

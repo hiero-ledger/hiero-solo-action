@@ -25,6 +25,8 @@ RUN npm install -g @hashgraph/solo@0.39.0
 RUN apk add --update --no-cache python3 jq
 
 COPY ./setup-solo-test-net.sh ./setup-solo-test-net.sh
+COPY ./kind-config.yaml ./kind-config.yaml
+COPY ./haproxy-svc-patch.yaml ./haproxy-svc-patch.yaml
 RUN chmod +x ./setup-solo-test-net.sh
 
 COPY ./create-ecdsa-account.sh ./create-ecdsa-account.sh
