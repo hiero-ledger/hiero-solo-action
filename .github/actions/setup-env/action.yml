@@ -37,11 +37,3 @@ runs:
       continue-on-error: true
       with:
         egress-policy: audit
-
-    - name: Install repo dependencies
-      shell: bash
-      run: npm install
-
-    - name: Build the action
-      shell: bash
-      run: npm run build
