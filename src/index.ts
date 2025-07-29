@@ -1,6 +1,6 @@
 import { readFileSync } from "fs";
-import { exec } from "@actions/exec";
 import { spawn } from "child_process";
+import { exec } from "@actions/exec";
 import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
 
 /**
@@ -41,7 +41,7 @@ async function portForwardIfExists(
     );
     portForwardProcess.unref();
     info(`Port-forward started for ${service} on ${portSpec}`);
-  } catch (err) {
+  } catch {
     info(`Service ${service} not found, skipping port-forward`);
   }
 }
@@ -59,6 +59,10 @@ async function deploySoloTestNetwork(): Promise<void> {
   const namespace = "solo";
   const deployment = "solo-deployment";
   const hieroVersion = getInput("hieroVersion");
+
+  if (!hieroVersion) {
+    return info("Hiero version not found, skipping deployment");
+  }
 
   saveState("clusterName", clusterName);
 
@@ -142,7 +146,7 @@ async function deploySoloTestNetwork(): Promise<void> {
    */
   try {
     await portForwardIfExists("haproxy-node1-svc", "50211:50211", namespace);
-  } catch (err) {
+  } catch {
     info("HAProxy service not found, skipping port-forward");
   }
 }
@@ -221,7 +225,7 @@ async function deployRelay(): Promise<void> {
       `${relayPort}:7546`,
       namespace
     );
-  } catch (err) {
+  } catch {
     info("Relay service not found, skipping port-forward");
   }
 }
@@ -254,10 +258,16 @@ async function createAccount(type: "ecdsa" | "ed25519"): Promise<void> {
   };
 
   const accountJson = await extractAccountJson();
-  const { accountId, publicKey } = JSON.parse(accountJson);
+  const { accountId, publicKey } = JSON.parse(accountJson) as AccountInfo;
 
   const privateKeyCmd = `kubectl get secret account-key-${accountId} -n ${namespace} -o jsonpath='{.data.privateKey}' | base64 -d | xargs`;
   let privateKey = "";
+
+  if (!accountId || !publicKey) {
+    return info(
+      "Account ID or public key not found, skipping account creation"
+    );
+  }
 
   /**
    * Get the private key
@@ -311,4 +321,10 @@ async function run(): Promise<void> {
   await createAccount("ed25519");
 }
 
-run().catch((error) => setFailed(error.message));
+run().catch((error) => setFailed(error));
+
+interface AccountInfo {
+  accountId: string;
+  publicKey: string;
+  balance: number;
+}
