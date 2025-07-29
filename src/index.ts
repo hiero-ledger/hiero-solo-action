@@ -20,16 +20,6 @@ function extractAccountAsJson(inputText: string): string {
 }
 
 /**
- * Installs and builds the action
- * This installs the action dependencies and builds the action
- * @returns void
- */
-async function installAndBuild() {
-  await exec("npm install");
-  await exec("npm run build");
-}
-
-/**
  * Port forwards a service if it exists
  * This port forwards a service if it exists in the namespace
  * @param service - The name of the service to port forward
@@ -314,7 +304,6 @@ async function createAccount(type: "ecdsa" | "ed25519"): Promise<void> {
  * @returns void
  */
 async function run(): Promise<void> {
-  await installAndBuild();
   await deploySoloTestNetwork();
   await deployMirrorNode();
   await deployRelay();
