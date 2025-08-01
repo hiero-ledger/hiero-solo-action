@@ -11,22 +11,22 @@ The network that is created by the action contains one consensus node that can b
 The action creates an account on the network that contains 10,000,000 hbars.
 All information about the account is stored as output to the github action.
 
-A good example on how the action is used can be found at the [hiero-enterprise project action]([https://github.com/OpenElements/hedera-enterprise/blob/main/.github/workflows/maven.yml](https://github.com/OpenElements/hiero-enterprise-java/blob/main/.github/workflows/maven.yml)). Here the action is used to create a temporary network that is than used to execute tests against the network.
+A good example on how the action is used can be found at the [hiero-enterprise project action](<[https://github.com/OpenElements/hedera-enterprise/blob/main/.github/workflows/maven.yml](https://github.com/OpenElements/hiero-enterprise-java/blob/main/.github/workflows/maven.yml)>). Here the action is used to create a temporary network that is than used to execute tests against the network.
 
 ## Inputs
 
 The GitHub action takes the following inputs:
 
-| Input          |  Required | Default |Description |
-|----------------|-----------|---------|-------------------------------|
-| `hieroVersion`|  false    | `v0.58.10` | Hiero consenus node version to use |
-| `mirrorNodeVersion`|  false    | `v0.133.0` | Mirror node version to use |
-| `installMirrorNode` |  false    | `false`   | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:5551`. |
-| `mirrorNodePortRest`|  false    | `5551` | Port for Mirror Node REST API |
-| `mirrorNodePortGrpc`|  false    | `5600` | Port for Mirror Node gRPC |
-| `mirrorNodePortWeb3Rest`|  false    | `8545` | Port for Web3 REST API |
-| `installRelay` |  false    | `false`   | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process. |
-| `relayPort`|  false    | `7546` | Port for the JSON-RPC-Relay |
+| Input                    | Required | Default    | Description                                                                                                                                |
+| ------------------------ | -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `hieroVersion`           | false    | `v0.58.10` | Hiero consenus node version to use                                                                                                         |
+| `mirrorNodeVersion`      | false    | `v0.133.0` | Mirror node version to use                                                                                                                 |
+| `installMirrorNode`      | false    | `false`    | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:5551`. |
+| `mirrorNodePortRest`     | false    | `5551`     | Port for Mirror Node REST API                                                                                                              |
+| `mirrorNodePortGrpc`     | false    | `5600`     | Port for Mirror Node gRPC                                                                                                                  |
+| `mirrorNodePortWeb3Rest` | false    | `8545`     | Port for Web3 REST API                                                                                                                     |
+| `installRelay`           | false    | `false`    | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process.                                                 |
+| `relayPort`              | false    | `7546`     | Port for the JSON-RPC-Relay                                                                                                                |
 
 > [! IMPORTANT]
 > The used Solo version isn't compatible with Hiero consenus node versions above v0.58.10.
@@ -34,17 +34,18 @@ The GitHub action takes the following inputs:
 
 ## Outputs
 
-| Output                                   | Description                                                                 |
-|------------------------------------------|-----------------------------------------------------------------------------|
-| `steps.solo.outputs.accountId`           | The account ID of account created in ED25519 format.                        |
-| `steps.solo.outputs.publicKey`           | The public key of account created in ED25519 format.                        |
-| `steps.solo.outputs.privateKey`          | The private key of account created in ED25519 format.                       |
-| `steps.solo.outputs.ecdsaAccountId`      | The account ID of the account created (in ECDSA format).                    |
-| `steps.solo.outputs.ecdsaPublicKey`      | The public key of the account created (in ECDSA format).                    |
-| `steps.solo.outputs.ecdsaPrivateKey`     | The private key of the account created (in ECDSA format).                   |
-| `steps.solo.outputs.ed25519AccountId`    | Same as `accountId`, but with an explicit ED25519 format!                   |
-| `steps.solo.outputs.ed25519PublicKey`    | Same as `publicKey`, but with an explicit ED25519 format!                   |
-| `steps.solo.outputs.ed25519PrivateKey`   | Same as `privateKey`, but with an explicit ED25519 format!                  |
+| Output                                 | Description                                                |
+| -------------------------------------- | ---------------------------------------------------------- |
+| `steps.solo.outputs.accountId`         | The account ID of account created in ED25519 format.       |
+| `steps.solo.outputs.publicKey`         | The public key of account created in ED25519 format.       |
+| `steps.solo.outputs.privateKey`        | The private key of account created in ED25519 format.      |
+| `steps.solo.outputs.deployment`        | The name of the Solo deployment created by the action.     |
+| `steps.solo.outputs.ecdsaAccountId`    | The account ID of the account created (in ECDSA format).   |
+| `steps.solo.outputs.ecdsaPublicKey`    | The public key of the account created (in ECDSA format).   |
+| `steps.solo.outputs.ecdsaPrivateKey`   | The private key of the account created (in ECDSA format).  |
+| `steps.solo.outputs.ed25519AccountId`  | Same as `accountId`, but with an explicit ED25519 format!  |
+| `steps.solo.outputs.ed25519PublicKey`  | Same as `publicKey`, but with an explicit ED25519 format!  |
+| `steps.solo.outputs.ed25519PrivateKey` | Same as `privateKey`, but with an explicit ED25519 format! |
 
 # Simple usage
 
