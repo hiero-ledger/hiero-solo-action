@@ -18,7 +18,8 @@ A good example on how the action is used can be found at the [hiero-enterprise p
 The GitHub action takes the following inputs:
 
 | Input                    | Required | Default    | Description                                                                                                                                |
-| ------------------------ | -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+|--------------------------|----------|------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| `hbarAmount`             | false    | `10000000` | Amount of hbars to fund a created account with.                                                                                            |
 | `hieroVersion`           | false    | `v0.58.10` | Hiero consenus node version to use                                                                                                         |
 | `mirrorNodeVersion`      | false    | `v0.133.0` | Mirror node version to use                                                                                                                 |
 | `installMirrorNode`      | false    | `false`    | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:5551`. |
@@ -87,6 +88,22 @@ The GitHub action takes the following inputs:
     echo "Account ID: ${{ steps.solo.outputs.ed25519AccountId }}"
     echo "Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
     echo "Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
+```
+
+# Usage with `hbarAmount`
+
+```yaml
+- name: Setup Hiero Solo
+  uses: hiero-ledger/hiero-solo-action@v0.8
+  id: solo
+  with:
+    hbarAmount: 10000000
+
+- name: Use Hiero Solo
+  run: |
+    echo "Account ID: ${{ steps.solo.outputs.accountId }}"
+    # Display account information including the current amount of HBAR
+    solo account get --account-id ${{ steps.solo.outputs.accountId }} --deployment "solo-deployment"
 ```
 
 # Local Solo Test Network

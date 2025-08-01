@@ -35,6 +35,10 @@ inputs:
     description: "Port for JSON-RPC-Relay"
     required: false
     default: "7546"
+  hbarAmount:
+    description: "Amount of HBAR to be assigned to the created accounts"
+    required: false
+    default: "10000000"
 outputs:
   accountId:
     description: "Account ID of the generated ED25519 account (default for simplicity)"
@@ -223,6 +227,7 @@ runs:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
         SOLO_NAMESPACE: solo
         SOLO_DEPLOYMENT: solo-deployment
+        HBAR_AMOUNT: ${{ inputs.hbarAmount || 10000000 }}
       run: |
         echo "Creating ECDSA account..."
         solo account create --generate-ecdsa-key --deployment $SOLO_DEPLOYMENT > account_create_output_ecdsa.txt
@@ -234,7 +239,7 @@ runs:
         export ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
         export ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
         export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$ACCOUNT_ID -n $SOLO_NAMESPACE -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-        solo account update --account-id $ACCOUNT_ID --hbar-amount 10000000 --deployment $SOLO_DEPLOYMENT
+        solo account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}"
         echo "accountId=$ACCOUNT_ID"
         echo "publicKey=$ACCOUNT_PUBLIC_KEY"
         echo "privateKey=$ACCOUNT_PRIVATE_KEY"
@@ -249,6 +254,7 @@ runs:
         GITHUB_ACTION_PATH: ${{ github.action_path }}
         SOLO_NAMESPACE: solo
         SOLO_DEPLOYMENT: solo-deployment
+        HBAR_AMOUNT: ${{ inputs.hbarAmount || 10000000 }}
       run: |
         echo "Creating ED25519 account..."
         solo account create --deployment $SOLO_DEPLOYMENT > account_create_output_ed25519.txt
@@ -260,7 +266,7 @@ runs:
         export ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
         export ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
         export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$ACCOUNT_ID -n $SOLO_NAMESPACE -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-        solo account update --account-id $ACCOUNT_ID --hbar-amount 10000000 --deployment $SOLO_DEPLOYMENT
+        solo account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}"
         echo "accountId=$ACCOUNT_ID"
         echo "publicKey=$ACCOUNT_PUBLIC_KEY"
         echo "privateKey=$ACCOUNT_PRIVATE_KEY"
