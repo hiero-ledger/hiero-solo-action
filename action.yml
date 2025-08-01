@@ -45,6 +45,9 @@ outputs:
   privateKey:
     description: "Private key of the generated ED25519 account (default for simplicity)"
     value: ${{ steps.create-ed25519.outputs.privateKey }}
+  deployment:
+    description: "Name of the Solo deployment created by the action"
+    value: "solo-deployment"
   ecdsaAccountId:
     description: "ECDSA account id of generated account"
     value: ${{ steps.create-ecdsa.outputs.accountId }}
