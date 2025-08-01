@@ -18,11 +18,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: ⚙️ Setup Hiero Solo
-        uses: ./
         id: solo
+        uses: ./
 
       - name: ✅ Validate Hiero Solo Outputs
-        run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
         env:
           ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
           PRIVATE_KEY: ${{ steps.solo.outputs.privateKey }}
@@ -33,6 +32,29 @@ jobs:
           ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
           ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
           ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
+        run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
+
+  validate-hbar-amount:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: ⚙️ Setup Hiero Solo
+        id: solo
+        uses: ./
+        with:
+          hbarAmount: '100000001'
+
+      - name: ✅ Validate Solo Account HBAR Amount
+        env:
+          ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
+        run: solo account get --account-id "${ACCOUNT_ID}" --deployment "solo-deployment"
 
   validate-mirror-node:
     runs-on: ubuntu-latest
@@ -46,11 +68,11 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: ⚙️ Setup Hiero Solo with MirrorNode
+        id: solo
         uses: ./
         with:
           installMirrorNode: true
           mirrorNodeVersion: "v0.132.0"
-        id: solo
 
       - name: ✅ Validate Mirror Node API
         run: |
@@ -92,12 +114,22 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: ⚙️ Setup Hiero Solo with JSON-RPC Relay
+        id: solo
         uses: ./
         with:
           installRelay: true
-        id: solo
 
       - name: ✅ Validate JSON-RPC Relay
+        env:
+          ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
+          PRIVATE_KEY: ${{ steps.solo.outputs.privateKey }}
+          PUBLIC_KEY: ${{ steps.solo.outputs.publicKey }}
+          ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
+          ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
+          ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
+          ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
+          ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
+          ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
         run: |
           ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
@@ -136,13 +168,3 @@ jobs:
           echo "✅ JSON-RPC Relay request successful"
           echo "Chain ID: $CHAIN_ID"
           cat response.json
-        env:
-          ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
-          PRIVATE_KEY: ${{ steps.solo.outputs.privateKey }}
-          PUBLIC_KEY: ${{ steps.solo.outputs.publicKey }}
-          ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
-          ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
-          ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
-          ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
-          ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
-          ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
