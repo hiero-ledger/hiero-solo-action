@@ -3,6 +3,12 @@ import { spawn } from "child_process";
 import { exec } from "@actions/exec";
 import { setFailed, saveState, getInput, setOutput, info } from "@actions/core";
 
+interface AccountInfo {
+  accountId: string;
+  publicKey: string;
+  balance: number;
+}
+
 /**
  * Extracts the account information from the output text
  * @param inputText - The text to extract the account information from
@@ -30,19 +36,63 @@ async function portForwardIfExists(
   service: string,
   portSpec: string,
   namespace: string
-) {
+): Promise<void> {
   try {
-    await exec("kubectl", ["get", "svc", service, "-n", namespace]);
-    info(`Service ${service} exist`);
-    const portForwardProcess = spawn(
-      "kubectl",
-      ["port-forward", `svc/${service}`, "-n", namespace, portSpec],
-      { detached: true, stdio: "ignore" }
+    // Check if service exists first
+    const exitCode = await exec("kubectl", [
+      "get",
+      "svc",
+      service,
+      "-n",
+      namespace,
+    ]);
+
+    if (exitCode === 0) {
+      info(`Service ${service} exists`);
+
+      const portForwardProcess = spawn(
+        "kubectl",
+        ["port-forward", `svc/${service}`, "-n", namespace, portSpec],
+        {
+          detached: true,
+          stdio: "ignore",
+        }
+      );
+
+      // Handle process errors
+      portForwardProcess.on("error", (error) => {
+        info(`Port-forward process error for ${service}: ${error.message}`);
+      });
+
+      portForwardProcess.unref();
+      info(`Port-forward started for ${service} on ${portSpec}`);
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    info(
+      `Service ${service} not found or error occurred: ${errorMessage}, skipping port-forward`
     );
-    portForwardProcess.unref();
-    info(`Port-forward started for ${service} on ${portSpec}`);
-  } catch {
-    info(`Service ${service} not found, skipping port-forward`);
+  }
+}
+
+/**
+ * Executes a command safely with proper error handling
+ * @param command - The command to execute
+ * @param args - The arguments for the command
+ * @param options - Optional execution options
+ */
+async function safeExec(
+  command: string,
+  args?: string[],
+  options?: Parameters<typeof exec>[2]
+): Promise<number> {
+  try {
+    return await exec(command, args, options);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `Command failed: ${command} ${args?.join(" ") || ""} - ${errorMessage}`
+    );
   }
 }
 
@@ -61,93 +111,141 @@ async function deploySoloTestNetwork(): Promise<void> {
   const hieroVersion = getInput("hieroVersion");
 
   if (!hieroVersion) {
-    return info("Hiero version not found, skipping deployment");
+    info("Hiero version not found, skipping deployment");
+    return;
   }
 
   saveState("clusterName", clusterName);
 
-  /**
-   * Create a Kubernetes cluster using kind
-   * This creates a new Kubernetes cluster using the kind CLI
-   */
-  await exec(`kind create cluster -n ${clusterName}`);
-
-  /**
-   * Initialize the Solo CLI configuration
-   * This creates a new configuration file in ~/.solo/config.yaml
-   */
-  await exec(`solo init`);
-
-  /**
-   * Connect the Solo CLI to the kind cluster using a cluster reference name
-   * This creates a new cluster reference in ~/.solo/config.yaml
-   */
-  await exec(
-    `solo cluster-ref connect --cluster-ref kind-${clusterName} --context kind-${clusterName}`
-  );
-
-  /**
-   * Create a new deployment
-   * This creates a new deployment in the ~/.solo/deployments.yaml file
-   */
-  await exec(
-    `solo deployment create -n ${namespace} --deployment ${deployment}`
-  );
-
-  /**
-   * Add the kind cluster to the deployment with 1 consensus node
-   * This adds the kind cluster to the deployment in the ~/.solo/deployments.yaml file
-   */
-  await exec(
-    `solo deployment add-cluster --deployment ${deployment} --cluster-ref kind-${clusterName} --num-consensus-nodes 1`
-  );
-
-  /**
-   * Generate keys for the node
-   * This generates the gossip and TLS keys for the node
-   */
-  await exec(
-    `solo node keys --gossip-keys --tls-keys -i node1 --deployment ${deployment}`
-  );
-
-  /**
-   * Setup the Solo cluster
-   * This sets up the Solo cluster in the ~/.solo/config.yaml file
-   */
-  await exec(`solo cluster-ref setup -s ${clusterName}`);
-
-  /**
-   * Deploy the network
-   */
-  await exec(`solo network deploy -i node1 --deployment ${deployment}`);
-
-  /**
-   * Setup the node
-   * This sets up the node in the ~/.solo/config.yaml file
-   */
-  await exec(
-    `solo node setup -i node1 --deployment ${deployment} -t ${hieroVersion} --quiet-mode`
-  );
-
-  /**
-   * Start the node
-   * This starts the node in the ~/.solo/config.yaml file
-   */
-  await exec(`solo node start -i node1 --deployment ${deployment}`);
-
-  /**
-   * Debug: List services in the solo namespace
-   */
-  await exec(`kubectl get svc -n ${namespace}`);
-
-  /**
-   * Port forward the HAProxy service
-   * This port forwards the HAProxy service to the local machine
-   */
   try {
+    /**
+     * Create a Kubernetes cluster using kind
+     * This creates a new Kubernetes cluster using the kind CLI
+     */
+    await safeExec("kind", ["create", "cluster", "-n", clusterName]);
+
+    /**
+     * Initialize the Solo CLI configuration
+     * This creates a new configuration file in ~/.solo/config.yaml
+     */
+    await safeExec("solo", ["init"]);
+
+    /**
+     * Connect the Solo CLI to the kind cluster using a cluster reference name
+     * This creates a new cluster reference in ~/.solo/config.yaml
+     */
+    await safeExec("solo", [
+      "cluster-ref",
+      "connect",
+      "--cluster-ref",
+      `kind-${clusterName}`,
+      "--context",
+      `kind-${clusterName}`,
+    ]);
+
+    /**
+     * Create a new deployment
+     * This creates a new deployment in the ~/.solo/deployments.yaml file
+     */
+    await safeExec("solo", [
+      "deployment",
+      "create",
+      "-n",
+      namespace,
+      "--deployment",
+      deployment,
+    ]);
+
+    /**
+     * Add the kind cluster to the deployment with 1 consensus node
+     * This adds the kind cluster to the deployment in the ~/.solo/deployments.yaml file
+     */
+    await safeExec("solo", [
+      "deployment",
+      "add-cluster",
+      "--deployment",
+      deployment,
+      "--cluster-ref",
+      `kind-${clusterName}`,
+      "--num-consensus-nodes",
+      "1",
+    ]);
+
+    /**
+     * Generate keys for the node
+     * This generates the gossip and TLS keys for the node
+     */
+    await safeExec("solo", [
+      "node",
+      "keys",
+      "--gossip-keys",
+      "--tls-keys",
+      "-i",
+      "node1",
+      "--deployment",
+      deployment,
+    ]);
+
+    /**
+     * Setup the Solo cluster
+     * This sets up the Solo cluster in the ~/.solo/config.yaml file
+     */
+    await safeExec("solo", ["cluster-ref", "setup", "-s", clusterName]);
+
+    /**
+     * Deploy the network
+     */
+    await safeExec("solo", [
+      "network",
+      "deploy",
+      "-i",
+      "node1",
+      "--deployment",
+      deployment,
+    ]);
+
+    /**
+     * Setup the node
+     * This sets up the node in the ~/.solo/config.yaml file
+     */
+    await safeExec("solo", [
+      "node",
+      "setup",
+      "-i",
+      "node1",
+      "--deployment",
+      deployment,
+      "-t",
+      hieroVersion,
+      "--quiet-mode",
+    ]);
+
+    /**
+     * Start the node
+     * This starts the node in the ~/.solo/config.yaml file
+     */
+    await safeExec("solo", [
+      "node",
+      "start",
+      "-i",
+      "node1",
+      "--deployment",
+      deployment,
+    ]);
+
+    /**
+     * Debug: List services in the solo namespace
+     */
+    await safeExec("kubectl", ["get", "svc", "-n", namespace]);
+
+    /**
+     * Port forward the HAProxy service
+     * This port forwards the HAProxy service to the local machine
+     */
     await portForwardIfExists("haproxy-node1-svc", "50211:50211", namespace);
-  } catch {
-    info("HAProxy service not found, skipping port-forward");
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to deploy Solo test network: ${errorMessage}`);
   }
 }
 
@@ -167,27 +265,37 @@ async function deployMirrorNode(): Promise<void> {
   const portGrpc = getInput("mirrorNodePortGrpc");
   const portWeb3 = getInput("mirrorNodePortWeb3Rest");
 
-  /**
-   * Deploy the Mirror Node
-   * This deploys the Mirror Node in the Solo cluster
-   */
-  await exec(
-    `solo mirror-node deploy --deployment ${deployment} --mirror-node-version ${version}`
-  );
+  try {
+    /**
+     * Deploy the Mirror Node
+     * This deploys the Mirror Node in the Solo cluster
+     */
+    await safeExec("solo", [
+      "mirror-node",
+      "deploy",
+      "--deployment",
+      deployment,
+      "--mirror-node-version",
+      version,
+    ]);
 
-  /**
-   * List services in the solo namespace
-   * This lists the services in the solo namespace
-   */
-  await exec(`kubectl get svc -n ${namespace}`);
+    /**
+     * List services in the solo namespace
+     * This lists the services in the solo namespace
+     */
+    await safeExec("kubectl", ["get", "svc", "-n", namespace]);
 
-  /**
-   * Port forward the Mirror Node services
-   * This port forwards the Mirror Node services to the local machine
-   */
-  await portForwardIfExists("mirror-rest", `${portRest}:80`, namespace);
-  await portForwardIfExists("mirror-grpc", `${portGrpc}:5600`, namespace);
-  await portForwardIfExists("mirror-web3", `${portWeb3}:80`, namespace);
+    /**
+     * Port forward the Mirror Node services
+     * This port forwards the Mirror Node services to the local machine
+     */
+    await portForwardIfExists("mirror-rest", `${portRest}:80`, namespace);
+    await portForwardIfExists("mirror-grpc", `${portGrpc}:5600`, namespace);
+    await portForwardIfExists("mirror-web3", `${portWeb3}:80`, namespace);
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to deploy Mirror Node: ${errorMessage}`);
+  }
 }
 
 /**
@@ -203,30 +311,38 @@ async function deployRelay(): Promise<void> {
   const deployment = "solo-deployment";
   const relayPort = getInput("relayPort");
 
-  /**
-   * Deploy the Relay
-   * This deploys the Relay in the Solo cluster
-   */
-  await exec(`solo relay deploy -i node1 --deployment ${deployment}`);
-
-  /**
-   * List services in the solo namespace
-   * This lists the services in the solo namespace
-   */
-  await exec(`kubectl get svc -n ${namespace}`);
-
-  /**
-   * Port forward the Relay service
-   * This port forwards the Relay service to the local machine
-   */
   try {
+    /**
+     * Deploy the Relay
+     * This deploys the Relay in the Solo cluster
+     */
+    await safeExec("solo", [
+      "relay",
+      "deploy",
+      "-i",
+      "node1",
+      "--deployment",
+      deployment,
+    ]);
+
+    /**
+     * List services in the solo namespace
+     * This lists the services in the solo namespace
+     */
+    await safeExec("kubectl", ["get", "svc", "-n", namespace]);
+
+    /**
+     * Port forward the Relay service
+     * This port forwards the Relay service to the local machine
+     */
     await portForwardIfExists(
       "relay-node1-hedera-json-rpc-relay",
       `${relayPort}:7546`,
       namespace
     );
-  } catch {
-    info("Relay service not found, skipping port-forward");
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    info(`Relay service deployment failed: ${errorMessage}, continuing...`);
   }
 }
 
@@ -243,68 +359,86 @@ async function createAccount(type: "ecdsa" | "ed25519"): Promise<void> {
 
   const generateFlag = type === "ecdsa" ? "--generate-ecdsa-key" : "";
 
-  /**
-   * Create an account
-   * This creates an account in the Solo cluster
-   */
-  await exec("bash", [
-    "-c",
-    `solo account create ${generateFlag} --deployment "${deployment}" > ${outputFile}`,
-  ]);
+  try {
+    /**
+     * Create an account
+     * This creates an account in the Solo cluster
+     */
+    const createCommand = `solo account create ${generateFlag} --deployment "${deployment}" > ${outputFile}`;
+    await safeExec("bash", ["-c", createCommand]);
 
-  const extractAccountJson = async () => {
-    const content = readFileSync(outputFile, "utf-8");
-    return extractAccountAsJson(content);
-  };
+    const extractAccountJson = (): string => {
+      try {
+        const content = readFileSync(outputFile, "utf-8");
+        return extractAccountAsJson(content);
+      } catch (error) {
+        const errorMessage =
+          error instanceof Error ? error.message : String(error);
+        throw new Error(
+          `Failed to read or parse account file: ${errorMessage}`
+        );
+      }
+    };
 
-  const accountJson = await extractAccountJson();
-  const { accountId, publicKey } = JSON.parse(accountJson) as AccountInfo;
+    const accountJson = extractAccountJson();
+    const accountInfo = JSON.parse(accountJson) as AccountInfo;
+    const { accountId, publicKey } = accountInfo;
 
-  const privateKeyCmd = `kubectl get secret account-key-${accountId} -n ${namespace} -o jsonpath='{.data.privateKey}' | base64 -d | xargs`;
-  let privateKey = "";
+    if (!accountId || !publicKey) {
+      info("Account ID or public key not found, skipping account creation");
+      return;
+    }
 
-  if (!accountId || !publicKey) {
-    return info(
-      "Account ID or public key not found, skipping account creation"
-    );
-  }
-
-  /**
-   * Get the private key
-   * This gets the private key for the account
-   */
-  await exec("bash", ["-c", privateKeyCmd], {
-    listeners: {
-      stdout: (data) => {
-        privateKey += data.toString();
-      },
-    },
-  });
-
-  /**
-   * Update the account
-   * This updates the account in the Solo cluster
-   */
-  await exec(
-    `solo account update --account-id ${accountId} --hbar-amount 10000000 --deployment ${deployment}`
-  );
-
-  if (type === "ecdsa") {
-    setOutput("ecdsaAccountId", accountId);
-    setOutput("ecdsaPublicKey", publicKey);
-    setOutput("ecdsaPrivateKey", privateKey);
-  } else {
-    setOutput("ed25519AccountId", accountId);
-    setOutput("ed25519PublicKey", publicKey);
-    setOutput("ed25519PrivateKey", privateKey);
+    const privateKeyCmd = `kubectl get secret account-key-${accountId} -n ${namespace} -o jsonpath='{.data.privateKey}' | base64 -d | xargs`;
+    let privateKey = "";
 
     /**
-     * Set generic outputs for backward compatibility
-     * This sets the generic outputs for the account
+     * Get the private key
+     * This gets the private key for the account
      */
-    setOutput("accountId", accountId);
-    setOutput("publicKey", publicKey);
-    setOutput("privateKey", privateKey);
+    await safeExec("bash", ["-c", privateKeyCmd], {
+      listeners: {
+        stdout: (data: Buffer) => {
+          privateKey += data.toString();
+        },
+      },
+    });
+
+    /**
+     * Update the account
+     * This updates the account in the Solo cluster
+     */
+    await safeExec("solo", [
+      "account",
+      "update",
+      "--account-id",
+      accountId,
+      "--hbar-amount",
+      "10000000",
+      "--deployment",
+      deployment,
+    ]);
+
+    if (type === "ecdsa") {
+      setOutput("ecdsaAccountId", accountId);
+      setOutput("ecdsaPublicKey", publicKey);
+      setOutput("ecdsaPrivateKey", privateKey.trim());
+    } else {
+      setOutput("ed25519AccountId", accountId);
+      setOutput("ed25519PublicKey", publicKey);
+      setOutput("ed25519PrivateKey", privateKey.trim());
+
+      /**
+       * Set generic outputs for backward compatibility
+       * This sets the generic outputs for the account
+       */
+      setOutput("accountId", accountId);
+      setOutput("publicKey", publicKey);
+      setOutput("privateKey", privateKey.trim());
+    }
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    throw new Error(`Failed to create ${type} account: ${errorMessage}`);
   }
 }
 
@@ -314,17 +448,19 @@ async function createAccount(type: "ecdsa" | "ed25519"): Promise<void> {
  * @returns void
  */
 async function run(): Promise<void> {
-  await deploySoloTestNetwork();
-  await deployMirrorNode();
-  await deployRelay();
-  await createAccount("ecdsa");
-  await createAccount("ed25519");
+  try {
+    await deploySoloTestNetwork();
+    await deployMirrorNode();
+    await deployRelay();
+    await createAccount("ecdsa");
+    await createAccount("ed25519");
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    setFailed(`Script execution failed: ${errorMessage}`);
+  }
 }
 
-run().catch((error) => setFailed(error));
-
-interface AccountInfo {
-  accountId: string;
-  publicKey: string;
-  balance: number;
-}
+run().catch((error) => {
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  setFailed(`Unhandled error in main execution: ${errorMessage}`);
+});
