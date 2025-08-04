@@ -27459,9 +27459,55 @@ var __webpack_exports__ = {};
 /* harmony import */ var _actions_exec__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__nccwpck_require__.n(_actions_exec__WEBPACK_IMPORTED_MODULE_1__);
 
 
-async function cleanup() {
-    const clusterName = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getState)("clusterName") || "solo-e2e";
-    await (0,_actions_exec__WEBPACK_IMPORTED_MODULE_1__.exec)(`kind delete cluster --name ${clusterName}`);
+/**
+ * Executes a command safely with proper error handling
+ * @param command - The command to execute
+ * @param args - The arguments for the command
+ * @param options - Optional execution options
+ */
+async function safeExec(command, args = [], options) {
+    try {
+        (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`[exec] Running: ${command} ${args.join(" ")}`);
+        return await (0,_actions_exec__WEBPACK_IMPORTED_MODULE_1__.exec)(command, args, options);
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        const stack = err instanceof Error && err.stack ? `\nStack: ${err.stack}` : "";
+        (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.error)(`[exec] Failed: ${command} ${args.join(" ")}\nError: ${message}${stack}`);
+        throw new Error(`safeExec error: ${command} ${args.join(" ")} - ${message}`);
+    }
 }
-cleanup().catch((error) => (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.warning)(`Cleanup failed: ${error.message}`));
+/**
+ * Cleanup function to delete the kind cluster
+ */
+async function cleanup() {
+    const clusterName = (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.getState)("clusterName");
+    if (!clusterName) {
+        (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)("[cleanup] No cluster name found in state, skipping cleanup");
+        return;
+    }
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`[cleanup] Starting cleanup for cluster: ${clusterName}`);
+    try {
+        await safeExec("kind", ["delete", "cluster", "--name", clusterName]);
+        (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.info)(`[cleanup] Cluster '${clusterName}' deleted successfully`);
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.warning)(`[cleanup] Failed to delete cluster '${clusterName}': ${message}`);
+    }
+}
+async function main() {
+    try {
+        await cleanup();
+    }
+    catch (err) {
+        const message = err instanceof Error ? err.message : String(err);
+        (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.warning)(`[main] Cleanup threw an error: ${message}`);
+    }
+}
+main().catch((err) => {
+    const message = err instanceof Error ? err.message : String(err);
+    (0,_actions_core__WEBPACK_IMPORTED_MODULE_0__.error)(`[main] Unhandled error: ${message}`);
+    process.exitCode = 1;
+});
 
