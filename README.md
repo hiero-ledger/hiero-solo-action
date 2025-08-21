@@ -28,6 +28,8 @@ The GitHub action takes the following inputs:
 | `mirrorNodePortWeb3Rest` | false    | `8545`     | Port for Web3 REST API                                                                                                                     |
 | `installRelay`           | false    | `false`    | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process.                                                 |
 | `relayPort`              | false    | `7546`     | Port for the JSON-RPC-Relay                                                                                                                |
+| `grpcProxyPort`          | false    | `9998`     | Port for gRPC Proxy                                                                                                                        |
+| `haproxyPort`            | false    | `50211`    | Port for HAProxy                                                                                                                           |
 
 > [! IMPORTANT]
 > The used Solo version isn't compatible with Hiero consenus node versions above v0.58.10.
