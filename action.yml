@@ -43,6 +43,10 @@ inputs:
     description: "Port for HAProxy"
     required: false
     default: "50211"
+  soloVersion:
+    description: "Version of Solo CLI to install"
+    required: false
+    default: "0.41.0"
   hbarAmount:
     description: "Amount of HBAR to be assigned to the created accounts"
     required: false
@@ -125,7 +129,7 @@ runs:
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@0.41.0
+      run: npm install -g @hashgraph/solo@${{ inputs.soloVersion }}
 
     - name: Deploy Solo Test Network
       shell: bash

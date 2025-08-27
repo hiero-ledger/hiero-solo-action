@@ -30,6 +30,7 @@ The GitHub action takes the following inputs:
 | `relayPort`              | false    | `7546`     | Port for the JSON-RPC-Relay                                                                                                                |
 | `grpcProxyPort`          | false    | `9998`     | Port for gRPC Proxy                                                                                                                        |
 | `haproxyPort`            | false    | `50211`    | Port for HAProxy                                                                                                                           |
+| `soloVersion`            | false    | `0.41.0`   | Version of Solo CLI to install                                                                                                             |
 
 > [! IMPORTANT]
 > The used Solo version isn't compatible with Hiero consenus node versions above v0.58.10.
