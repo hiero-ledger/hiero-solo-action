@@ -8,6 +8,7 @@ A GitHub Action for setting up a Hiero Solo network.
 An overview of the usage and idea of the action can be found [here](https://dev.to/hendrikebbers/ci-for-hedera-based-projects-2nja).
 
 The network that is created by the action contains one consensus node that can be accessed at `localhost:50211`.
+When a mirror node is installed, the Java-based REST API can be accessed at `localhost:8084`.
 The action creates an account on the network that contains 10,000,000 hbars.
 All information about the account is stored as output to the github action.
 
@@ -31,6 +32,7 @@ The GitHub action takes the following inputs:
 | `grpcProxyPort`          | false    | `9998`     | Port for gRPC Proxy                                                                                                                        |
 | `haproxyPort`            | false    | `50211`    | Port for HAProxy                                                                                                                           |
 | `soloVersion`            | false    | `0.41.0`   | Version of Solo CLI to install                                                                                                             |
+| `javaRestApiPort`        | false    | `8084`     | Port for Java-based REST API                                                                                                               |
 
 > [! IMPORTANT]
 > The used Solo version isn't compatible with Hiero consenus node versions above v0.58.10.
@@ -85,7 +87,7 @@ The GitHub action takes the following inputs:
 - name: Setup Hiero Solo
   uses: hiero-ledger/hiero-solo-action@v0.8
   id: solo
-
+  
 - name: Use Hiero Solo
   run: |
     echo "Account ID: ${{ steps.solo.outputs.ed25519AccountId }}"

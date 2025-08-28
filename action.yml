@@ -47,6 +47,10 @@ inputs:
     description: "Version of Solo CLI to install"
     required: false
     default: "0.41.0"
+  javaRestApiPort:
+    description: "Port for Java-based REST API"
+    required: false
+    default: "8084"
   hbarAmount:
     description: "Amount of HBAR to be assigned to the created accounts"
     required: false
@@ -217,6 +221,12 @@ runs:
           kubectl port-forward svc/mirror-web3 -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortWeb3Rest }}:80 &
         else
           echo "Mirror node service mirror-web3 not found, skipping port-forward"
+        fi
+        # Port forward Java REST API (only if service exists)
+        if kubectl get svc mirror-restjava -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/mirror-restjava -n $SOLO_NAMESPACE ${{ inputs.javaRestApiPort }}:80 &
+        else
+          echo "Java REST API service mirror-restjava not found, skipping port-forward"
         fi
 
     - name: Deploy JSON-RPC-Relay
