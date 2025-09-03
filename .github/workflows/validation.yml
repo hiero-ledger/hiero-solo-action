@@ -216,7 +216,6 @@ jobs:
         uses: ./
         with:
           installMirrorNode: true
-          mirrorNodeVersion: "v0.132.0"
 
       - name: Install grpcurl
         run: |
