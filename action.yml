@@ -35,6 +35,22 @@ inputs:
     description: "Port for JSON-RPC-Relay"
     required: false
     default: "7546"
+  grpcProxyPort:
+    description: "Port for gRPC Proxy"
+    required: false
+    default: "9998"
+  haproxyPort:
+    description: "Port for HAProxy"
+    required: false
+    default: "50211"
+  soloVersion:
+    description: "Version of Solo CLI to install"
+    required: false
+    default: "0.41.0"
+  javaRestApiPort:
+    description: "Port for Java-based REST API"
+    required: false
+    default: "8084"
   hbarAmount:
     description: "Amount of HBAR to be assigned to the created accounts"
     required: false
@@ -117,7 +133,7 @@ runs:
 
     - name: Install Solo
       shell: bash
-      run: npm install -g @hashgraph/solo@0.42.0
+      run: npm install -g @hashgraph/solo@${{ inputs.soloVersion }}
 
     - name: Deploy Solo Test Network
       shell: bash
@@ -164,9 +180,16 @@ runs:
 
         # Port forward HAProxy (only if service exists)
         if kubectl get svc haproxy-node1-svc -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/haproxy-node1-svc -n $SOLO_NAMESPACE 50211:50211 &
+          kubectl port-forward svc/haproxy-node1-svc -n $SOLO_NAMESPACE ${{ inputs.haproxyPort }}:50211 &
         else
           echo "HAProxy service haproxy-node1-svc not found, skipping port-forward"
+        fi
+        
+        # Port forward gRPC proxy (only if service exists)
+        if kubectl get svc envoy-proxy-node1-svc -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/envoy-proxy-node1-svc -n $SOLO_NAMESPACE ${{ inputs.grpcProxyPort }}:8080 &
+        else
+          echo "gRPC proxy service envoy-proxy-node1-svc not found, skipping port-forward"
         fi
 
     - name: Deploy MirrorNode
@@ -177,7 +200,7 @@ runs:
         SOLO_DEPLOYMENT: solo-deployment
         MIRROR_NODE_VERSION: ${{ inputs.mirrorNodeVersion }}
       run: |
-        solo mirror-node deploy --deployment $SOLO_DEPLOYMENT --mirror-node-version $MIRROR_NODE_VERSION
+        solo mirror-node deploy --deployment $SOLO_DEPLOYMENT --mirror-node-version $MIRROR_NODE_VERSION --pinger
         # Debug: List services in the solo namespace
         echo "Listing services in namespace $SOLO_NAMESPACE:"
         kubectl get svc -n $SOLO_NAMESPACE
@@ -198,6 +221,12 @@ runs:
           kubectl port-forward svc/mirror-web3 -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortWeb3Rest }}:80 &
         else
           echo "Mirror node service mirror-web3 not found, skipping port-forward"
+        fi
+        # Port forward Java REST API (only if service exists)
+        if kubectl get svc mirror-restjava -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/mirror-restjava -n $SOLO_NAMESPACE ${{ inputs.javaRestApiPort }}:80 &
+        else
+          echo "Java REST API service mirror-restjava not found, skipping port-forward"
         fi
 
     - name: Deploy JSON-RPC-Relay
