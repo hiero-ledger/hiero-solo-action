@@ -9,7 +9,7 @@ inputs:
   hieroVersion:
     description: "Version of Hiero consensus node to be used"
     required: false
-    default: "v0.58.10"
+    default: "v0.65.1"
   mirrorNodeVersion:
     description: "Version of the mirror node to be used"
     required: false
@@ -46,7 +46,7 @@ inputs:
   soloVersion:
     description: "Version of Solo CLI to install"
     required: false
-    default: "0.41.0"
+    default: "0.43.0"
   javaRestApiPort:
     description: "Port for Java-based REST API"
     required: false
@@ -184,7 +184,7 @@ runs:
         else
           echo "HAProxy service haproxy-node1-svc not found, skipping port-forward"
         fi
-        
+
         # Port forward gRPC proxy (only if service exists)
         if kubectl get svc envoy-proxy-node1-svc -n $SOLO_NAMESPACE >/dev/null 2>&1; then
           kubectl port-forward svc/envoy-proxy-node1-svc -n $SOLO_NAMESPACE ${{ inputs.grpcProxyPort }}:8080 &
@@ -200,7 +200,7 @@ runs:
         SOLO_DEPLOYMENT: solo-deployment
         MIRROR_NODE_VERSION: ${{ inputs.mirrorNodeVersion }}
       run: |
-        solo mirror-node deploy --deployment $SOLO_DEPLOYMENT --mirror-node-version $MIRROR_NODE_VERSION --pinger
+        solo mirror-node deploy --cluster-ref kind-solo-e2e --deployment $SOLO_DEPLOYMENT --mirror-node-version $MIRROR_NODE_VERSION --pinger
         # Debug: List services in the solo namespace
         echo "Listing services in namespace $SOLO_NAMESPACE:"
         kubectl get svc -n $SOLO_NAMESPACE
