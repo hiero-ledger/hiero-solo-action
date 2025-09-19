@@ -74,7 +74,6 @@ jobs:
         uses: ./
         with:
           installMirrorNode: true
-          mirrorNodeVersion: "v0.132.0"
 
       - name: ✅ Validate Mirror Node API
         run: |
