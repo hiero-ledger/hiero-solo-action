@@ -9,11 +9,11 @@ inputs:
   hieroVersion:
     description: "Version of Hiero consensus node to be used"
     required: false
-    default: "v0.65.1"
+    default: "v0.66.0"
   mirrorNodeVersion:
     description: "Version of the mirror node to be used"
     required: false
-    default: "v0.133.0"
+    default: "v0.138.0"
   mirrorNodePortRest:
     description: "Port for Mirror Node REST API"
     required: false
@@ -46,7 +46,7 @@ inputs:
   soloVersion:
     description: "Version of Solo CLI to install"
     required: false
-    default: "0.43.0"
+    default: "0.43.2"
   javaRestApiPort:
     description: "Port for Java-based REST API"
     required: false
