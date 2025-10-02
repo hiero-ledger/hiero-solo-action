@@ -151,7 +151,7 @@ runs:
         solo init
 
         # Connect the Solo CLI to the kind cluster using a cluster reference name
-        solo cluster-ref connect --cluster-ref kind-$SOLO_CLUSTER_NAME --context kind-$SOLO_CLUSTER_NAME
+        solo cluster-ref config --cluster-ref kind-$SOLO_CLUSTER_NAME --context kind-$SOLO_CLUSTER_NAME
 
         # Create deployment
         solo deployment create -n $SOLO_NAMESPACE --deployment $SOLO_DEPLOYMENT
