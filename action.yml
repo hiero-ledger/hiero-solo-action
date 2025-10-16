@@ -286,7 +286,7 @@ runs:
         HBAR_AMOUNT: ${{ inputs.hbarAmount || 10000000 }}
       run: |
         echo "Creating ED25519 account..."
-        solo account create --deployment $SOLO_DEPLOYMENT > account_create_output_ed25519.txt
+        solo ledger account create --deployment $SOLO_DEPLOYMENT > account_create_output_ed25519.txt
         cat account_create_output_ed25519.txt
         JSON=$(cat account_create_output_ed25519.txt | python3 $GITHUB_ACTION_PATH/extractAccountAsJson.py) || {
           echo "Error: Python script extractAccountAsJson.py failed"
@@ -295,7 +295,7 @@ runs:
         export ACCOUNT_ID=$(echo $JSON | jq -r '.accountId')
         export ACCOUNT_PUBLIC_KEY=$(echo $JSON | jq -r '.publicKey')
         export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-$ACCOUNT_ID -n $SOLO_NAMESPACE -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-        solo account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}"
+        solo ledger account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}"
         echo "accountId=$ACCOUNT_ID"
         echo "publicKey=$ACCOUNT_PUBLIC_KEY"
         echo "privateKey=$ACCOUNT_PRIVATE_KEY"
