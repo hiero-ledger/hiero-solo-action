@@ -205,28 +205,28 @@ runs:
         echo "Listing services in namespace $SOLO_NAMESPACE:"
         kubectl get svc -n $SOLO_NAMESPACE
         # Port forward mirror node REST API (only if service exists)
-        if kubectl get svc mirror-rest -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-rest -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortRest }}:80 &
+        if kubectl get svc mirror-1-rest -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/mirror-1-rest -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortRest }}:80 &
         else
-          echo "Mirror node service mirror-rest not found, skipping port-forward"
+          echo "Mirror node service mirror-1-rest not found, skipping port-forward"
         fi
         # Port forward mirror node gRPC (only if service exists)
-        if kubectl get svc mirror-grpc -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-grpc -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortGrpc }}:5600 &
+        if kubectl get svc mirror-1-grpc -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/mirror-1-grpc -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortGrpc }}:5600 &
         else
-          echo "Mirror node service mirror-grpc not found, skipping port-forward"
+          echo "Mirror node service mirror-1-grpc not found, skipping port-forward"
         fi
         # Port forward mirror node web3 (only if service exists)
-        if kubectl get svc mirror-web3 -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-web3 -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortWeb3Rest }}:80 &
+        if kubectl get svc mirror-1-web3 -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/mirror-1-web3 -n $SOLO_NAMESPACE ${{ inputs.mirrorNodePortWeb3Rest }}:80 &
         else
-          echo "Mirror node service mirror-web3 not found, skipping port-forward"
+          echo "Mirror node service mirror-1-web3 not found, skipping port-forward"
         fi
         # Port forward Java REST API (only if service exists)
-        if kubectl get svc mirror-restjava -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-restjava -n $SOLO_NAMESPACE ${{ inputs.javaRestApiPort }}:80 &
+        if kubectl get svc mirror-1-restjava -n $SOLO_NAMESPACE >/dev/null 2>&1; then
+          kubectl port-forward svc/mirror-1-restjavaa -n $SOLO_NAMESPACE ${{ inputs.javaRestApiPort }}:80 &
         else
-          echo "Java REST API service mirror-restjava not found, skipping port-forward"
+          echo "Java REST API service mirror-1-restjava not found, skipping port-forward"
         fi
 
     - name: Deploy JSON-RPC-Relay
@@ -237,7 +237,7 @@ runs:
         SOLO_DEPLOYMENT: solo-deployment
       run: |
         echo "Installing JSON-RPC-Relay..."
-        solo relay deploy -i node1 --deployment $SOLO_DEPLOYMENT
+        solo relay node add -i node1 --deployment $SOLO_DEPLOYMENT
         echo "JSON-RPC-Relay installed successfully"
         # Debug: List services in the solo namespace
         echo "Listing services in namespace $SOLO_NAMESPACE:"

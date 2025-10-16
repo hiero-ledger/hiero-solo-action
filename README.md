@@ -108,7 +108,7 @@ The GitHub action takes the following inputs:
   run: |
     echo "Account ID: ${{ steps.solo.outputs.accountId }}"
     # Display account information including the current amount of HBAR
-    solo ledger account get --account-id ${{ steps.solo.outputs.accountId }} --deployment "solo-deployment"
+    solo ledger account info --account-id ${{ steps.solo.outputs.accountId }} --deployment "solo-deployment"
 ```
 
 # Local Solo Test Network
