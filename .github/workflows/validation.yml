@@ -56,7 +56,7 @@ jobs:
       - name: ✅ Validate Solo Account HBAR Amount
         env:
           ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
-        run: solo account get --account-id "${ACCOUNT_ID}" --deployment "solo-deployment"
+        run: solo ledger account info --account-id "${ACCOUNT_ID}" --deployment "solo-deployment"
 
   validate-mirror-node:
     runs-on: ubuntu-latest
