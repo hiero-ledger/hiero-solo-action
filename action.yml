@@ -200,7 +200,7 @@ runs:
         SOLO_DEPLOYMENT: solo-deployment
         MIRROR_NODE_VERSION: ${{ inputs.mirrorNodeVersion }}
       run: |
-        solo mirror-node deploy --cluster-ref kind-solo-e2e --deployment $SOLO_DEPLOYMENT --mirror-node-version $MIRROR_NODE_VERSION --pinger
+        solo mirror add --cluster-ref kind-solo-e2e --deployment $SOLO_DEPLOYMENT --mirror-node-version $MIRROR_NODE_VERSION --pinger
         # Debug: List services in the solo namespace
         echo "Listing services in namespace $SOLO_NAMESPACE:"
         kubectl get svc -n $SOLO_NAMESPACE
