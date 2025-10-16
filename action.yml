@@ -224,7 +224,7 @@ runs:
         fi
         # Port forward Java REST API (only if service exists)
         if kubectl get svc mirror-1-restjava -n $SOLO_NAMESPACE >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-1-restjavaa -n $SOLO_NAMESPACE ${{ inputs.javaRestApiPort }}:80 &
+          kubectl port-forward svc/mirror-1-restjava -n $SOLO_NAMESPACE ${{ inputs.javaRestApiPort }}:80 &
         else
           echo "Java REST API service mirror-1-restjava not found, skipping port-forward"
         fi
