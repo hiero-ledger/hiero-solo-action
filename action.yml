@@ -223,13 +223,14 @@ runs:
       env:
         SOLO_NAMESPACE: solo
         SOLO_DEPLOYMENT: solo-deployment
+        SOLO_CLUSTER_NAME: solo-e2e
         MIRROR_NODE_VERSION: ${{ inputs.mirrorNodeVersion }}
         SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
       run: |
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo mirror node add --cluster-ref kind-solo-e2e --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger
+          solo mirror node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger
         else
-          solo mirror-node deploy --cluster-ref kind-solo-e2e --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger
+          solo mirror-node deploy --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger
         fi
         
         # Debug: List services in the solo namespace
