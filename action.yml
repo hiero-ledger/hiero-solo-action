@@ -161,12 +161,10 @@ runs:
         # Initialize the Solo CLI configuration
         solo init
         
-        
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
           echo "::debug::Using Solo CLI commands for version >= 0.44.0"
           # Connect the Solo CLI to the kind cluster using a cluster reference name
           solo cluster-ref config connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME}
-    
           # Create deployment
           solo deployment config create -n ${SOLO_NAMESPACE} --deployment ${SOLO_DEPLOYMENT}
     
@@ -276,11 +274,9 @@ runs:
           solo relay deploy -i node1 --deployment ${SOLO_DEPLOYMENT}
         fi
         echo "JSON-RPC-Relay installed successfully"
-        
         # Debug: List services in the solo namespace
         echo "Listing services in namespace ${SOLO_NAMESPACE}:"
         kubectl get svc -n ${SOLO_NAMESPACE}
-        
         # Port forward JSON-RPC-Relay (only if service exists)
         if kubectl get svc relay-node1-hedera-json-rpc-relay -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
           kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${SOLO_NAMESPACE} ${{ inputs.relayPort }}:7546 &
@@ -299,29 +295,24 @@ runs:
         SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
       run: |
         echo "Creating ECDSA account..."
-        
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
           solo ledger account create --generate-ecdsa-key --deployment ${SOLO_DEPLOYMENT} > account_create_output_ecdsa.txt
         else
           solo account create --generate-ecdsa-key --deployment ${SOLO_DEPLOYMENT} > account_create_output_ecdsa.txt
         fi
-        
         cat account_create_output_ecdsa.txt
         JSON=$(cat account_create_output_ecdsa.txt | python3 ${GITHUB_ACTION_PATH}/extractAccountAsJson.py) || {
           echo "Error: Python script extractAccountAsJson.py failed"
           exit 1
         }
-        
         export ACCOUNT_ID=$(echo ${JSON} | jq -r '.accountId')
         export ACCOUNT_PUBLIC_KEY=$(echo ${JSON} | jq -r '.publicKey')
         export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-${ACCOUNT_ID} -n ${SOLO_NAMESPACE} -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-        
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
           solo ledger account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}"
         else
           solo account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}"
         fi
-        
         echo "accountId=${ACCOUNT_ID}"
         echo "publicKey=${ACCOUNT_PUBLIC_KEY}"
         echo "privateKey=${ACCOUNT_PRIVATE_KEY}"
@@ -345,23 +336,19 @@ runs:
         else
           solo account create --deployment ${SOLO_DEPLOYMENT} > account_create_output_ed25519.txt
         fi
-        
         cat account_create_output_ed25519.txt
         JSON=$(cat account_create_output_ed25519.txt | python3 ${GITHUB_ACTION_PATH}/extractAccountAsJson.py) || {
           echo "Error: Python script extractAccountAsJson.py failed"
           exit 1
         }
-        
         export ACCOUNT_ID=$(echo ${JSON} | jq -r '.accountId')
         export ACCOUNT_PUBLIC_KEY=$(echo ${JSON} | jq -r '.publicKey')
         export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-${ACCOUNT_ID} -n ${SOLO_NAMESPACE} -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-        
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
           solo ledger account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}"
         else
           solo account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}"
         fi
-        
         echo "accountId=${ACCOUNT_ID}"
         echo "publicKey=${ACCOUNT_PUBLIC_KEY}"
         echo "privateKey=${ACCOUNT_PRIVATE_KEY}"
