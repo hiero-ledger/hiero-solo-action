@@ -50,6 +50,8 @@ jobs:
       - name: ⚙️ Setup Hiero Solo
         id: solo
         uses: ./
+        with:
+          soloVersion: '0.43.2'
 
       - name: ✅ Validate Hiero Solo Outputs
         env:
@@ -62,7 +64,6 @@ jobs:
           ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
           ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
           ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
-          SOLO_VERSION: "0.43.2"
         run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
   validate-hbar-amount:
