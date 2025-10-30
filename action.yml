@@ -54,7 +54,7 @@ inputs:
   dualMode:
     description: "Enable dual mode to deploy two consensus nodes"
     required: false
-    default: false
+    default: true
     type: boolean
   hbarAmount:
     description: "Amount of HBAR to be assigned to the created accounts"
@@ -222,6 +222,22 @@ runs:
         # Debug: List services in the solo namespace
         echo "Listing services in namespace ${SOLO_NAMESPACE}:"
         kubectl get svc -n ${SOLO_NAMESPACE}
+        
+        # Debug: Show current user
+        echo "Current user: $(whoami)"
+        
+        # Add entries to /etc/hosts for easier access (requires sudo)
+        echo "Attempting to add entries to /etc/hosts..."
+        if sudo -n true 2>/dev/null; then
+          echo "127.0.0.1 node1.solo" | sudo tee -a /etc/hosts
+          if [[ "${DUAL_MODE}" == "true" ]]; then
+            echo "127.0.0.1 node2.solo" | sudo tee -a /etc/hosts
+          fi
+          echo "Successfully added entries to /etc/hosts"
+        else
+          echo "⚠️  No sudo access available, skipping /etc/hosts update"
+          echo "Nodes can still be accessed via localhost:50211 and localhost:50212"
+        fi
 
         # Port forward HAProxy for node1 (only if service exists)
         if kubectl get svc haproxy-node1-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
