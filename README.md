@@ -8,7 +8,7 @@ A GitHub Action for setting up a Hiero Solo network.
 An overview of the usage and idea of the action can be found [here](https://dev.to/hendrikebbers/ci-for-hedera-based-projects-2nja).
 
 The network that is created by the action contains one consensus node that can be accessed at `localhost:50211`.
-Optionally, you can deploy a second consensus node by enabling `dualMode: true`. When dual mode is enabled, the second node is accessible at `localhost:50212`.
+Optionally, you can deploy a second consensus node by enabling `dualMode: true`. When dual mode is enabled, the second node is accessible at `localhost:51211`.
 When a mirror node is installed, the Java-based REST API can be accessed at `localhost:8084`.
 The action creates an account on the network that contains 10,000,000 hbars.
 All information about the account is stored as output to the github action.
@@ -128,7 +128,7 @@ The GitHub action takes the following inputs:
     kubectl get svc -n solo
     kubectl get pods -n solo
     echo "Node 1 is accessible at localhost:50211"
-    echo "Node 2 is accessible at localhost:50212"
+    echo "Node 2 is accessible at localhost:51211"
     echo "Account ID: ${{ steps.solo.outputs.accountId }}"
 ```
 

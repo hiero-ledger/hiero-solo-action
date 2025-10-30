@@ -229,9 +229,9 @@ runs:
         # Add entries to /etc/hosts for easier access (requires sudo)
         echo "Attempting to add entries to /etc/hosts..."
         if sudo -n true 2>/dev/null; then
-          echo "127.0.0.1 node1.solo" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 network-node1-svc.${SOLO_CLUSTER_NAME}.svc.cluster.local" | sudo tee -a /etc/hosts
           if [[ "${DUAL_MODE}" == "true" ]]; then
-            echo "127.0.0.1 node2.solo" | sudo tee -a /etc/hosts
+            echo "127.0.0.1 network-node2-svc.${SOLO_CLUSTER_NAME}.svc.cluster.local" | sudo tee -a /etc/hosts
           fi
           echo "Successfully added entries to /etc/hosts"
         else
@@ -249,8 +249,8 @@ runs:
         # Port forward HAProxy for node2 if dual mode is enabled (only if service exists)
         if [[ "${DUAL_MODE}" == "true" ]]; then
           if kubectl get svc haproxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-            kubectl port-forward svc/haproxy-node2-svc -n ${SOLO_NAMESPACE} 50212:50211 &
-            echo "HAProxy for node2 is accessible on port 50212"
+            kubectl port-forward svc/haproxy-node2-svc -n ${SOLO_NAMESPACE} 51211:50211 &
+            echo "HAProxy for node2 is accessible on port 51211"
           else
             echo "HAProxy service haproxy-node2-svc not found, skipping port-forward"
           fi
