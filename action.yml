@@ -54,7 +54,7 @@ inputs:
   dualMode:
     description: "Enable dual mode to deploy two consensus nodes"
     required: false
-    default: true
+    default: false
     type: boolean
   hbarAmount:
     description: "Amount of HBAR to be assigned to the created accounts"
