@@ -166,7 +166,7 @@ runs:
 
         # Initialize the Solo CLI configuration
         solo init --dev
-        
+
         # Determine number of nodes based on dual mode
         if [[ "${DUAL_MODE}" == "true" ]]; then
           NUM_NODES=2
@@ -175,7 +175,7 @@ runs:
           NUM_NODES=1
           NODE_IDS="node1"
         fi
-        
+
         echo "Deploying ${NUM_NODES} consensus node(s)..."
 
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
@@ -222,16 +222,18 @@ runs:
         # Debug: List services in the solo namespace
         echo "Listing services in namespace ${SOLO_NAMESPACE}:"
         kubectl get svc -n ${SOLO_NAMESPACE}
-        
+
         # Debug: Show current user
         echo "Current user: $(whoami)"
-        
+
         # Add entries to /etc/hosts for easier access (requires sudo)
         echo "Attempting to add entries to /etc/hosts..."
         if sudo -n true 2>/dev/null; then
           echo "127.0.0.1 network-node1-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 envoy-proxy-node1-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
           if [[ "${DUAL_MODE}" == "true" ]]; then
             echo "127.0.0.1 network-node2-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
+            echo "127.0.0.1 envoy-proxy-node2-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
           fi
           echo "Successfully added entries to /etc/hosts"
         else
@@ -245,7 +247,7 @@ runs:
         else
           echo "HAProxy service haproxy-node1-svc not found, skipping port-forward"
         fi
-        
+
         # Port forward HAProxy for node2 if dual mode is enabled (only if service exists)
         if [[ "${DUAL_MODE}" == "true" ]]; then
           if kubectl get svc haproxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
@@ -261,6 +263,16 @@ runs:
           kubectl port-forward svc/envoy-proxy-node1-svc -n ${SOLO_NAMESPACE} ${{ inputs.grpcProxyPort }}:8080 &
         else
           echo "gRPC proxy service envoy-proxy-node1-svc not found, skipping port-forward"
+        fi
+
+        # Port forward gRPC proxy for node2 if dual mode is enabled (only if service exists)
+        if [[ "${DUAL_MODE}" == "true" ]]; then
+          if kubectl get svc envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
+            kubectl port-forward svc/envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} 8081:8080 &
+            echo "gRPC proxy for node2 is accessible on port 8081"
+          else
+            echo "gRPC proxy service envoy-proxy-node2-svc not found, skipping port-forward"
+          fi
         fi
 
     - name: Deploy MirrorNode
