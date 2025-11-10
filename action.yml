@@ -229,9 +229,9 @@ runs:
         # Add entries to /etc/hosts for easier access (requires sudo)
         echo "Attempting to add entries to /etc/hosts..."
         if sudo -n true 2>/dev/null; then
-          echo "127.0.0.1 network-node1-svc.${SOLO_CLUSTER_NAME}.svc.cluster.local" | sudo tee -a /etc/hosts
+          echo "127.0.0.1 network-node1-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
           if [[ "${DUAL_MODE}" == "true" ]]; then
-            echo "127.0.0.1 network-node2-svc.${SOLO_CLUSTER_NAME}.svc.cluster.local" | sudo tee -a /etc/hosts
+            echo "127.0.0.1 network-node2-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
           fi
           echo "Successfully added entries to /etc/hosts"
         else
