@@ -8,6 +8,7 @@ A GitHub Action for setting up a Hiero Solo network.
 An overview of the usage and idea of the action can be found [here](https://dev.to/hendrikebbers/ci-for-hedera-based-projects-2nja).
 
 The network that is created by the action contains one consensus node that can be accessed at `localhost:50211`.
+Optionally, you can deploy a second consensus node by enabling `dualMode: true`. When dual mode is enabled, the second node is accessible at `localhost:51211`.
 When a mirror node is installed, the Java-based REST API can be accessed at `localhost:8084`.
 The action creates an account on the network that contains 10,000,000 hbars.
 All information about the account is stored as output to the github action.
@@ -33,6 +34,7 @@ The GitHub action takes the following inputs:
 | `haproxyPort`            | false    | `50211`    | Port for HAProxy                                                                                                                           |
 | `soloVersion`            | false    | `0.41.0`   | Version of Solo CLI to install                                                                                                             |
 | `javaRestApiPort`        | false    | `8084`     | Port for Java-based REST API                                                                                                               |
+| `dualMode`               | false    | `false`    | Enable dual mode to deploy two consensus nodes                                                                                             |
 
 > [! IMPORTANT]
 > The used Solo version isn't compatible with Hiero consenus node versions above v0.58.10.
@@ -108,7 +110,26 @@ The GitHub action takes the following inputs:
   run: |
     echo "Account ID: ${{ steps.solo.outputs.accountId }}"
     # Display account information including the current amount of HBAR
-    solo ledger account info --account-id ${{ steps.solo.outputs.accountId }} --deployment "solo-deployment"
+    solo account get --account-id ${{ steps.solo.outputs.accountId }} --deployment "solo-deployment"
+```
+
+# Usage with Dual Mode (2 Consensus Nodes)
+
+```yaml
+- name: Setup Hiero Solo with Dual Mode
+  uses: hiero-ledger/hiero-solo-action@v0.8
+  id: solo
+  with:
+    dualMode: true
+    
+- name: Verify Nodes
+  run: |
+    echo "Checking services for both nodes..."
+    kubectl get svc -n solo
+    kubectl get pods -n solo
+    echo "Node 1 is accessible at localhost:50211"
+    echo "Node 2 is accessible at localhost:51211"
+    echo "Account ID: ${{ steps.solo.outputs.accountId }}"
 ```
 
 # Local Solo Test Network
