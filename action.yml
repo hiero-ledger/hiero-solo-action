@@ -39,6 +39,10 @@ inputs:
     description: "Port for gRPC Proxy"
     required: false
     default: "9998"
+  dualModeGrpcProxyPort:
+    description: "Port for the gRPC Proxy of the second consensus node (only if dual mode is enabled)"
+    required: false
+    default: "9999"
   haproxyPort:
     description: "Port for HAProxy"
     required: false
@@ -248,13 +252,22 @@ runs:
           echo "HAProxy service haproxy-node1-svc not found, skipping port-forward"
         fi
 
-        # Port forward HAProxy for node2 if dual mode is enabled (only if service exists)
+        # Port forward services for node2 if dual mode is enabled
         if [[ "${DUAL_MODE}" == "true" ]]; then
+          # Port forward HAProxy for node2 (only if service exists)
           if kubectl get svc haproxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
             kubectl port-forward svc/haproxy-node2-svc -n ${SOLO_NAMESPACE} 51211:50211 &
             echo "HAProxy for node2 is accessible on port 51211"
           else
             echo "HAProxy service haproxy-node2-svc not found, skipping port-forward"
+          fi
+
+          # Port forward gRPC proxy for node2 (only if service exists)
+          if kubectl get svc envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
+            kubectl port-forward svc/envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} ${{ inputs.dualModeGrpcProxyPort }}:8080 &
+            echo "gRPC proxy for node2 is accessible on port ${{ inputs.dualModeGrpcProxyPort }}"
+          else
+            echo "gRPC proxy service envoy-proxy-node2-svc not found, skipping port-forward"
           fi
         fi
 
@@ -263,16 +276,6 @@ runs:
           kubectl port-forward svc/envoy-proxy-node1-svc -n ${SOLO_NAMESPACE} ${{ inputs.grpcProxyPort }}:8080 &
         else
           echo "gRPC proxy service envoy-proxy-node1-svc not found, skipping port-forward"
-        fi
-
-        # Port forward gRPC proxy for node2 if dual mode is enabled (only if service exists)
-        if [[ "${DUAL_MODE}" == "true" ]]; then
-          if kubectl get svc envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-            kubectl port-forward svc/envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} 8081:8080 &
-            echo "gRPC proxy for node2 is accessible on port 8081"
-          else
-            echo "gRPC proxy service envoy-proxy-node2-svc not found, skipping port-forward"
-          fi
         fi
 
     - name: Deploy MirrorNode
