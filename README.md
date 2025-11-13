@@ -20,7 +20,7 @@ A good example on how the action is used can be found at the [hiero-enterprise p
 The GitHub action takes the following inputs:
 
 | Input                    | Required | Default    | Description                                                                                                                                |
-|--------------------------|----------|------------|--------------------------------------------------------------------------------------------------------------------------------------------|
+| ------------------------ | -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `hbarAmount`             | false    | `10000000` | Amount of hbars to fund a created account with.                                                                                            |
 | `hieroVersion`           | false    | `v0.58.10` | Hiero consenus node version to use                                                                                                         |
 | `mirrorNodeVersion`      | false    | `v0.133.0` | Mirror node version to use                                                                                                                 |
@@ -31,6 +31,7 @@ The GitHub action takes the following inputs:
 | `installRelay`           | false    | `false`    | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process.                                                 |
 | `relayPort`              | false    | `7546`     | Port for the JSON-RPC-Relay                                                                                                                |
 | `grpcProxyPort`          | false    | `9998`     | Port for gRPC Proxy                                                                                                                        |
+| `dualModeGrpcProxyPort`  | false    | `9999`     | Port for the gRPC Proxy of the second consensus node (only if dual mode is enabled)                                                        |
 | `haproxyPort`            | false    | `50211`    | Port for HAProxy                                                                                                                           |
 | `soloVersion`            | false    | `0.41.0`   | Version of Solo CLI to install                                                                                                             |
 | `javaRestApiPort`        | false    | `8084`     | Port for Java-based REST API                                                                                                               |
@@ -89,7 +90,7 @@ The GitHub action takes the following inputs:
 - name: Setup Hiero Solo
   uses: hiero-ledger/hiero-solo-action@v0.8
   id: solo
-  
+
 - name: Use Hiero Solo
   run: |
     echo "Account ID: ${{ steps.solo.outputs.ed25519AccountId }}"
@@ -121,7 +122,7 @@ The GitHub action takes the following inputs:
   id: solo
   with:
     dualMode: true
-    
+
 - name: Verify Nodes
   run: |
     echo "Checking services for both nodes..."
