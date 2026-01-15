@@ -9,7 +9,7 @@ on:
 
 jobs:
   validate-outputs:
-    runs-on: ubuntu-latest
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
@@ -37,7 +37,7 @@ jobs:
         run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
   validate-outputs-pre-0440:
-    runs-on: ubuntu-latest
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
@@ -67,7 +67,7 @@ jobs:
         run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
   validate-hbar-amount:
-    runs-on: ubuntu-latest
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
@@ -89,7 +89,7 @@ jobs:
         run: solo ledger account info --account-id "${ACCOUNT_ID}" --deployment "solo-deployment"
 
   validate-mirror-node:
-    runs-on: ubuntu-latest
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
@@ -134,7 +134,7 @@ jobs:
           fi
 
   validate-json-rpc-relay:
-    runs-on: ubuntu-latest
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
@@ -201,7 +201,7 @@ jobs:
           cat response.json
 
   validate-grpc-connections:
-    runs-on: ubuntu-latest
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
@@ -230,7 +230,7 @@ jobs:
           bash ${GITHUB_WORKSPACE}/scripts/check-grpc-connections.sh
 
   validate-grpc-connections-with-mirror:
-    runs-on: ubuntu-latest
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
