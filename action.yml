@@ -50,7 +50,7 @@ inputs:
   soloVersion:
     description: "Version of Solo CLI to install"
     required: false
-    default: "0.46.1"
+    default: "0.56.0"
   javaRestApiPort:
     description: "Port for Java-based REST API"
     required: false
@@ -278,8 +278,9 @@ runs:
           echo "gRPC proxy service envoy-proxy-node1-svc not found, skipping port-forward"
         fi
 
+    # Mirror node is required when installRelay is true (relay expects mirror-ingress-controller).
     - name: Deploy MirrorNode
-      if: ${{ inputs.installMirrorNode == 'true' }} # see https://github.com/actions/runner/issues/2238
+      if: ${{ inputs.installMirrorNode == 'true' || inputs.installRelay == 'true' }} # see https://github.com/actions/runner/issues/2238
       shell: bash
       env:
         SOLO_NAMESPACE: solo
@@ -287,11 +288,17 @@ runs:
         SOLO_CLUSTER_NAME: solo-e2e
         MIRROR_NODE_VERSION: ${{ inputs.mirrorNodeVersion }}
         SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
+        # Relay requires mirror-ingress-controller; --enable-ingress installs it.
+        ENABLE_INGRESS: ${{ inputs.installRelay == 'true' }}
       run: |
+        ENABLE_INGRESS_FLAG=""
+        if [[ "${ENABLE_INGRESS}" == "true" ]]; then
+          ENABLE_INGRESS_FLAG="--enable-ingress"
+        fi
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo mirror node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger --dev
+          solo mirror node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger ${ENABLE_INGRESS_FLAG} --dev
         else
-          solo mirror-node deploy --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger --dev
+          solo mirror-node deploy --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger ${ENABLE_INGRESS_FLAG} --dev
         fi
 
         # Debug: List services in the solo namespace
@@ -330,11 +337,15 @@ runs:
         SOLO_DEPLOYMENT: solo-deployment
         SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
       run: |
-        echo "Installing JSON-RPC-Relay..."
+        RELAY_VALUES_FILE="${GITHUB_WORKSPACE}/relay-low-resources.yaml"
+        RELAY_VALUES_FLAG=""
+        if [[ -f "${RELAY_VALUES_FILE}" ]]; then
+          RELAY_VALUES_FLAG="--values-file ${RELAY_VALUES_FILE}"
+        fi
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo relay node add -i node1 --deployment ${SOLO_DEPLOYMENT} --dev
+          solo relay node add -i node1 --deployment ${SOLO_DEPLOYMENT} --dev ${RELAY_VALUES_FLAG}
         else
-          solo relay deploy -i node1 --deployment ${SOLO_DEPLOYMENT} --dev
+          solo relay deploy -i node1 --deployment ${SOLO_DEPLOYMENT} --dev ${RELAY_VALUES_FLAG}
         fi
         echo "JSON-RPC-Relay installed successfully"
 

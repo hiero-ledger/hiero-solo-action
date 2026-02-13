@@ -1,0 +1,10 @@
+# Reduce relay CPU/memory so it can schedule on resource-constrained CI (single kind node).
+# Default chart requests 1100m CPU and 350Mi memory; kind + consensus + mirror leave no room.
+relay:
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
