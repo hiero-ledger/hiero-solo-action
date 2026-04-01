@@ -50,7 +50,7 @@ inputs:
   soloVersion:
     description: "Version of Solo CLI to install"
     required: false
-    default: "0.56.0"
+    default: "0.65.0"
   javaRestApiPort:
     description: "Port for Java-based REST API"
     required: false
