@@ -60,6 +60,11 @@ inputs:
     required: false
     default: false
     type: boolean
+  highThrottle:
+    description: "Use a high-throughput throttles.json at network genesis (100x default limits)"
+    required: false
+    default: false
+    type: boolean
   hbarAmount:
     description: "Amount of HBAR to be assigned to the created accounts"
     required: false
@@ -164,6 +169,8 @@ runs:
         HIERO_VERSION: ${{ inputs.hieroVersion }}
         SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
         DUAL_MODE: ${{ inputs.dualMode }}
+        HIGH_THROTTLE: ${{ inputs.highThrottle }}
+        GITHUB_ACTION_PATH: ${{ github.action_path }}
       run: |
         # Create a Kubernetes cluster using kind
         kind create cluster -n ${SOLO_CLUSTER_NAME}
@@ -178,6 +185,13 @@ runs:
         else
           NUM_NODES=1
           NODE_IDS="node1"
+        fi
+
+        # Opt-in high-throughput throttles for genesis
+        THROTTLES_FLAG=""
+        if [[ "${HIGH_THROTTLE}" == "true" ]]; then
+          THROTTLES_FLAG="--genesis-throttles-file ${GITHUB_ACTION_PATH}/high-throttles.json"
+          echo "Using high-throughput throttles from ${GITHUB_ACTION_PATH}/high-throttles.json"
         fi
 
         echo "Deploying ${NUM_NODES} consensus node(s)..."
@@ -199,7 +213,7 @@ runs:
           solo cluster-ref config setup -s ${SOLO_CLUSTER_NAME} --dev
 
           # Deploy network
-          solo consensus network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
+          solo consensus network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} ${THROTTLES_FLAG} --dev
 
           # Setup and start nodes
           solo consensus node setup -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --quiet-mode --dev
@@ -216,7 +230,7 @@ runs:
           solo cluster-ref setup -s ${SOLO_CLUSTER_NAME} --dev
           
           # Deploy network
-          solo network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
+          solo network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} ${THROTTLES_FLAG} --dev
           
           # Setup and start nodes
           solo node setup -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --quiet-mode --dev
