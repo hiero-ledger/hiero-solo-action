@@ -176,12 +176,37 @@ jobs:
           echo "ED25519 Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
           echo "ED25519 Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
 
-          sleep 30
-          RESPONSE=$(curl -s -w "%{http_code}" -X POST 'http://localhost:7546' \
-            -H 'Content-Type: application/json' \
-            -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
-            -o response.json)
-          if [ "$RESPONSE" -ne 200 ]; then
+          # Port-forwards from the setup step do not carry over to the next step; start one here.
+          # Relay Service name varies by Solo/chart version (e.g. relay-1 vs relay-node1-hedera-json-rpc-relay).
+          RELAY_SVC=""
+          if kubectl get svc relay-node1-hedera-json-rpc-relay -n solo >/dev/null 2>&1; then
+            RELAY_SVC=relay-node1-hedera-json-rpc-relay
+          elif kubectl get svc relay-1 -n solo >/dev/null 2>&1; then
+            RELAY_SVC=relay-1
+          fi
+          if [ -z "${RELAY_SVC}" ]; then
+            echo "❌ Error: JSON-RPC relay service not found (tried relay-node1-hedera-json-rpc-relay, relay-1)"
+            kubectl get svc -n solo
+            exit 1
+          fi
+          echo "Using relay Service: ${RELAY_SVC}"
+          kubectl port-forward "svc/${RELAY_SVC}" -n solo 7546:7546 &
+          PF_PID=$!
+          trap 'kill "${PF_PID}" 2>/dev/null || true' EXIT
+          sleep 2
+
+          RESPONSE=000
+          for _ in $(seq 1 90); do
+            RESPONSE=$(curl -s -w "%{http_code}" -X POST 'http://localhost:7546' \
+              -H 'Content-Type: application/json' \
+              -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
+              -o response.json) || RESPONSE="000"
+            if [ "$RESPONSE" = "200" ]; then
+              break
+            fi
+            sleep 2
+          done
+          if [ "$RESPONSE" != "200" ]; then
             echo "❌ Error: JSON-RPC request failed with status code $RESPONSE"
             echo "Response body:"
             cat response.json
