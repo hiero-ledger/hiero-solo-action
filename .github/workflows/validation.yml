@@ -88,6 +88,49 @@ jobs:
           ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
         run: solo ledger account info --account-id "${ACCOUNT_ID}" --deployment "solo-deployment"
 
+  validate-block-node:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: ⚙️ Setup Hiero Solo with Block Node
+        id: solo
+        uses: ./
+        with:
+          soloVersion: v0.69.0
+          installBlockNode: true
+          hieroVersion: 'v0.73.0'
+
+      - name: ✅ Validate Block Node Deployment
+        run: |
+          echo "Checking deployed resources..."
+          kubectl get pods -n solo
+          kubectl get svc -n solo
+
+          BLOCK_NODE_POD=""
+          for _ in $(seq 1 60); do
+            BLOCK_NODE_POD=$(kubectl get pods -n solo -o name | grep 'block-node' | head -n 1 || true)
+            if [ -n "${BLOCK_NODE_POD}" ]; then
+              break
+            fi
+            sleep 5
+          done
+
+          if [ -z "${BLOCK_NODE_POD}" ]; then
+            echo "❌ Error: block node pod not found"
+            kubectl get pods -n solo
+            exit 1
+          fi
+
+          echo "Found block node pod: ${BLOCK_NODE_POD}"
+          kubectl wait -n solo --for=condition=Ready "${BLOCK_NODE_POD}" --timeout=300s
+
   validate-mirror-node:
     runs-on: ubuntu-latest
     steps:

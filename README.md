@@ -9,6 +9,7 @@ An overview of the usage and idea of the action can be found [here](https://dev.
 
 The network that is created by the action contains one consensus node that can be accessed at `localhost:50211`.
 Optionally, you can deploy a second consensus node by enabling `dualMode: true`. When dual mode is enabled, the second node is accessible at `localhost:51211`.
+You can optionally provision a block node by enabling `installBlockNode: true`. The action reuses `hieroVersion` as the Solo block node `--release-tag`.
 When a mirror node is installed, the Java-based REST API can be accessed at `localhost:8084`.
 The action creates an account on the network that contains 10,000,000 hbars.
 All information about the account is stored as output to the github action.
@@ -22,8 +23,9 @@ The GitHub action takes the following inputs:
 | Input                    | Required | Default    | Description                                                                                                                                |
 | ------------------------ | -------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `hbarAmount`             | false    | `10000000` | Amount of hbars to fund a created account with.                                                                                            |
-| `hieroVersion`           | false    | `v0.58.10` | Hiero consenus node version to use                                                                                                         |
-| `mirrorNodeVersion`      | false    | `v0.133.0` | Mirror node version to use                                                                                                                 |
+| `hieroVersion`           | false    | `v0.72.0`  | Hiero consensus node version to use. When `installBlockNode` is enabled, this same value is passed to Solo as the block node release tag. |
+| `installBlockNode`       | false    | `false`    | If set to `true`, the action provisions a block node before consensus node deployment. No separate block-node version input is exposed.    |
+| `mirrorNodeVersion`      | false    | `v0.151.0` | Mirror node version to use                                                                                                                 |
 | `installMirrorNode`      | false    | `false`    | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:5551`. |
 | `mirrorNodePortRest`     | false    | `5551`     | Port for Mirror Node REST API                                                                                                              |
 | `mirrorNodePortGrpc`     | false    | `5600`     | Port for Mirror Node gRPC                                                                                                                  |
@@ -33,13 +35,14 @@ The GitHub action takes the following inputs:
 | `grpcProxyPort`          | false    | `9998`     | Port for gRPC Proxy                                                                                                                        |
 | `dualModeGrpcProxyPort`  | false    | `9999`     | Port for the gRPC Proxy of the second consensus node (only if dual mode is enabled)                                                        |
 | `haproxyPort`            | false    | `50211`    | Port for HAProxy                                                                                                                           |
-| `soloVersion`            | false    | `0.41.0`   | Version of Solo CLI to install                                                                                                             |
+| `soloVersion`            | false    | `0.69.0`   | Version of Solo CLI to install                                                                                                             |
 | `javaRestApiPort`        | false    | `8084`     | Port for Java-based REST API                                                                                                               |
 | `dualMode`               | false    | `false`    | Enable dual mode to deploy two consensus nodes                                                                                             |
 
 > [! IMPORTANT]
-> The used Solo version isn't compatible with Hiero consenus node versions above v0.58.10.
-> Therefore we recommend to not change `hieroVersion`.
+> The default `soloVersion` and `hieroVersion` are kept aligned in this repository.
+> If you override `hieroVersion`, make sure the selected Solo CLI version supports that Hiero release.
+> When `installBlockNode` is enabled, the same `hieroVersion` value is also used for `solo block node add --release-tag`.
 
 ## Outputs
 
@@ -112,6 +115,19 @@ The GitHub action takes the following inputs:
     echo "Account ID: ${{ steps.solo.outputs.accountId }}"
     # Display account information including the current amount of HBAR
     solo account get --account-id ${{ steps.solo.outputs.accountId }} --deployment "solo-deployment"
+```
+
+# Usage with Block Node
+
+Use `installBlockNode: true` to provision a block node. The action reuses the existing `hieroVersion` input for the block node release tag, so no additional block-node version input is needed.
+
+```yaml
+- name: Setup Hiero Solo with Block Node
+  uses: hiero-ledger/hiero-solo-action@v0.8
+  id: solo
+  with:
+    hieroVersion: v0.73.0
+    installBlockNode: true
 ```
 
 # Usage with Dual Mode (2 Consensus Nodes)

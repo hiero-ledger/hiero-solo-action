@@ -6,6 +6,11 @@ inputs:
     required: true
     default: false
     type: boolean
+  installBlockNode:
+    description: "Defines if a block node should be installed"
+    required: false
+    default: false
+    type: boolean
   hieroVersion:
     description: "Version of Hiero consensus node to be used"
     required: false
@@ -103,6 +108,8 @@ runs:
       run: |
         echo "installMirrorNode: ${{ inputs.installMirrorNode }}"
         echo "is installMirrorNode: ${{ inputs.installMirrorNode == 'true' }}"
+        echo "installBlockNode: ${{ inputs.installBlockNode }}"
+        echo "is installBlockNode: ${{ inputs.installBlockNode == 'true' }}"
 
     - name: Setup Java
       uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
@@ -162,6 +169,7 @@ runs:
         SOLO_CLUSTER_SETUP_NAMESPACE: solo-cluster
         SOLO_DEPLOYMENT: solo-deployment
         HIERO_VERSION: ${{ inputs.hieroVersion }}
+        INSTALL_BLOCK_NODE: ${{ inputs.installBlockNode }}
         SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
         DUAL_MODE: ${{ inputs.dualMode }}
       run: |
@@ -198,6 +206,11 @@ runs:
           # Setup the Solo cluster
           solo cluster-ref config setup -s ${SOLO_CLUSTER_NAME} --dev
 
+          # Optionally deploy a block node before the consensus network is deployed.
+          if [[ "${INSTALL_BLOCK_NODE}" == "true" ]]; then
+            solo block node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
+          fi
+
           # Deploy network
           solo consensus network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
 
@@ -214,6 +227,11 @@ runs:
           solo node keys --gossip-keys --tls-keys -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --dev
           
           solo cluster-ref setup -s ${SOLO_CLUSTER_NAME} --dev
+
+          # Optionally deploy a block node before the consensus network is deployed.
+          if [[ "${INSTALL_BLOCK_NODE}" == "true" ]]; then
+            solo block node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
+          fi
           
           # Deploy network
           solo network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
