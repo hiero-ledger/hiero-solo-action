@@ -30706,7 +30706,7 @@ function addPath(inputPath) {
  * @param     options  optional. See InputOptions.
  * @returns   string
  */
-function core_getInput(name, options) {
+function getInput(name, options) {
     const val = process.env[`INPUT_${name.replace(/ /g, '_').toUpperCase()}`] || '';
     if (options && options.required && !val) {
         throw new Error(`Input required and not supplied: ${name}`);
@@ -30725,7 +30725,7 @@ function core_getInput(name, options) {
  *
  */
 function getMultilineInput(name, options) {
-    const inputs = core_getInput(name, options)
+    const inputs = getInput(name, options)
         .split('\n')
         .filter(x => x !== '');
     if (options && options.trimWhitespace === false) {
@@ -30746,7 +30746,7 @@ function getMultilineInput(name, options) {
 function getBooleanInput(name, options) {
     const trueValue = ['true', 'True', 'TRUE'];
     const falseValue = ['false', 'False', 'FALSE'];
-    const val = core_getInput(name, options);
+    const val = getInput(name, options);
     if (trueValue.includes(val))
         return true;
     if (falseValue.includes(val))
@@ -30761,7 +30761,7 @@ function getBooleanInput(name, options) {
  * @param     value    value to store. Non-string values will be converted to a string via JSON.stringify
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function core_setOutput(name, value) {
+function setOutput(name, value) {
     const filePath = process.env['GITHUB_OUTPUT'] || '';
     if (filePath) {
         return issueFileCommand('OUTPUT', prepareKeyValueMessage(name, value));
@@ -30785,7 +30785,7 @@ function setCommandEcho(enabled) {
  * When the action exits it will be with an exit code of 1
  * @param message add error issue message
  */
-function core_setFailed(message) {
+function setFailed(message) {
     process.exitCode = ExitCode.Failure;
     error(message);
 }
@@ -30925,7 +30925,6 @@ function getIDToken(aud) {
 
 
 
-
 /**
  * Extracts the account information from the output text
  * @param inputText - The text to extract the account information from
@@ -30941,151 +30940,61 @@ function extractAccountAsJson(inputText) {
         throw new Error("No JSON block found in output");
     }
 }
-/**
- * Safely gets input with proper error handling
- * @param name - The input name to retrieve
- * @returns The input value or empty string if not found
- */
-function safeGetInput(name) {
-    try {
-        return getInput(name) ?? "";
+// ─── Command helpers ─────────────────────────────────────────────────────────
+function stripQuotes(arg) {
+    if ((arg.startsWith('"') && arg.endsWith('"')) ||
+        (arg.startsWith("'") && arg.endsWith("'"))) {
+        return arg.slice(1, -1);
     }
-    catch {
-        return "";
-    }
+    return arg;
+}
+function parseCommandStr(commandStr) {
+    const tokens = commandStr.match(/[^\s"']+|"[^"]*"|'[^']*'/g) ?? [];
+    const [command, ...rest] = tokens;
+    if (!command)
+        return null;
+    return { command, args: rest.map(stripQuotes) };
 }
 /**
- * Safely sets output with proper error handling
- * @param name - The output name to set
- * @param value - The value to set
- */
-function safeSetOutput(name, value) {
-    try {
-        setOutput(name, value);
-    }
-    catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        info(`Failed to set output ${name}: ${errorMessage}`);
-    }
-}
-/**
- * Safely sets failed state with proper error handling
- */
-function safeSetFailed(message) {
-    try {
-        setFailed(message);
-    }
-    catch {
-        console.error(`Failed to set failed state: ${message}`);
-        process.exit(1);
-    }
-}
-/**
- * Safely logs info with proper error handling
- * @param message - The message to log
- */
-function safeInfo(message) {
-    try {
-        core_info(message);
-    }
-    catch {
-        console.log(message); // Fallback to console.log if info fails
-    }
-}
-/**
- * Executes a command safely with proper error handling
- * @param command - The command to execute
- * @param args - The arguments for the command
- * @param options - Optional execution options
- */
-async function safeExec(command, args, options) {
-    try {
-        const result = await exec_exec(command, args, options);
-        return typeof result === "number" ? result : 0;
-    }
-    catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Command failed: ${command} ${args?.join(" ") ?? ""} - ${errorMessage}`, { cause: error });
-    }
-}
-/**
- * Executes a command string by breaking it down into command and arguments, then calls safeExec.
- * Supports basic quoted strings for arguments.
- * @param commandStr - The full command string (e.g. "kubectl get svc -n solo")
- * @param options - Optional execution options
+ * Parses a shell-style command string and executes it via @actions/exec.
  */
 async function runCommand(commandStr, options) {
-    const matches = commandStr.match(/[^\s"']+|"[^"]*"|'[^']*'/g) ?? [];
-    if (matches.length === 0)
+    const parsed = parseCommandStr(commandStr);
+    if (!parsed)
         return 0;
-    const command = matches[0];
-    const args = matches.slice(1).map((arg) => {
-        // Strip surrounding quotes if present
-        if ((arg.startsWith('"') && arg.endsWith('"')) ||
-            (arg.startsWith("'") && arg.endsWith("'"))) {
-            return arg.slice(1, -1);
-        }
-        return arg;
-    });
-    return safeExec(command, args, options);
+    return exec_exec(parsed.command, parsed.args, options);
 }
 /**
- * Executes a Solo CLI command safely using runCommand
- * @param commandStr - The full command string (e.g. "solo init --dev")
- * @param options - Optional execution options
+ * Convenience alias for runCommand — used for Solo CLI invocations.
  */
 async function soloRun(commandStr, options) {
     return runCommand(commandStr, options);
 }
+// ─── Port forwarding ─────────────────────────────────────────────────────────
 /**
- * Port forwards a service if it exists
- * This port forwards a service if it exists in the namespace
- * @param service - The name of the service to port forward
- * @param portSpec - The port specification to use for the port forward
- * @param namespace - The namespace to port forward the service from
+ * Port-forwards a Kubernetes service if it exists in the given namespace.
  */
 async function portForwardIfExists(service, portSpec, namespace) {
     try {
-        // Check if service exists first
         const exitCode = await runCommand(`kubectl get svc ${service} -n ${namespace}`);
         if (exitCode === 0) {
-            safeInfo(`Service ${service} exists`);
-            const portForwardProcess = spawn("kubectl", ["port-forward", `svc/${service}`, "-n", namespace, portSpec], {
-                detached: true,
-                stdio: "ignore",
-            });
-            // Handle process errors
-            portForwardProcess.on("error", (error) => {
-                safeInfo(`Port-forward process error for ${service}: ${error.message}`);
+            info(`Service ${service} exists`);
+            const portForwardProcess = spawn("kubectl", ["port-forward", `svc/${service}`, "-n", namespace, portSpec], { detached: true, stdio: "ignore" });
+            portForwardProcess.on("error", (err) => {
+                info(`Port-forward process error for ${service}: ${err.message}`);
             });
             portForwardProcess.unref();
-            safeInfo(`Port-forward started for ${service} on ${portSpec}`);
+            info(`Port-forward started for ${service} on ${portSpec}`);
         }
     }
     catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        safeInfo(`Service ${service} not found or error occurred: ${errorMessage}, skipping port-forward`);
+        const msg = error instanceof Error ? error.message : String(error);
+        info(`Service ${service} not found or error occurred: ${msg}, skipping port-forward`);
     }
 }
+// ─── Version helpers ─────────────────────────────────────────────────────────
 /**
- * Safely reads a file with proper error handling
- * @param filePath - The path to the file to read
- * @returns The file content as string
- */
-function safeReadFileSync(filePath) {
-    try {
-        return readFileSync(filePath, "utf-8");
-    }
-    catch (error) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        throw new Error(`Failed to read file ${filePath}: ${errorMessage}`, {
-            cause: error,
-        });
-    }
-}
-/**
- * Compares two semver-like version strings.
- * Returns true if `version` >= `target`.
+ * Returns true when `version` is greater than or equal to `target`.
  */
 function isVersionGte(version, target) {
     const parse = (v) => v.replace(/^v/, "").split(".").map(Number);
@@ -31209,11 +31118,11 @@ const TOOLS = [
 async function cleanup() {
     const savedClusterName = getState("clusterName");
     const clusterName = savedClusterName ?? CLUSTER_NAME;
-    safeInfo(`[cleanup] Starting cleanup for cluster: ${clusterName}`);
+    core_info(`[cleanup] Starting cleanup for cluster: ${clusterName}`);
     // Deletes the kind cluster
     try {
         await runCommand(`kind delete cluster --name ${clusterName}`);
-        safeInfo(`[cleanup] Cluster '${clusterName}' deleted successfully`);
+        core_info(`[cleanup] Cluster '${clusterName}' deleted successfully`);
     }
     catch (err) {
         const message = err instanceof Error ? err.message : String(err);
@@ -31223,7 +31132,7 @@ async function cleanup() {
     const soloConfigDir = (0,external_path_namespaceObject.join)((0,external_os_namespaceObject.homedir)(), ".solo");
     try {
         (0,external_fs_namespaceObject.rmSync)(soloConfigDir, { recursive: true, force: true });
-        safeInfo(`[cleanup] Removed Solo config directory: ${soloConfigDir}`);
+        core_info(`[cleanup] Removed Solo config directory: ${soloConfigDir}`);
     }
     catch (err) {
         const message = err instanceof Error ? err.message : String(err);

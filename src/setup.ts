@@ -1,5 +1,6 @@
 import { which } from "@actions/io";
-import { startGroup, addPath, endGroup, getInput } from "@actions/core";
+import { startGroup, addPath, endGroup, getInput, info } from "@actions/core";
+import { exec } from "@actions/exec";
 import {
     find,
     downloadTool,
@@ -9,7 +10,7 @@ import {
 } from "@actions/tool-cache";
 import { promises as fs } from "fs";
 import { join } from "path";
-import { safeInfo, runCommand, safeExec, isVersionGte } from "./utils.js";
+import { runCommand, isVersionGte } from "./utils.js";
 import {
     CLUSTER_NAME,
     DEPLOYMENT_NAME,
@@ -33,7 +34,7 @@ async function ensureTool(spec: ToolSpec): Promise<void> {
     for (const binary of checkNames) {
         const found = await which(binary, false);
         if (found) {
-            safeInfo(`${spec.name} is already installed at ${found}.`);
+            info(`${spec.name} is already installed at ${found}.`);
             return;
         }
     }
@@ -42,7 +43,7 @@ async function ensureTool(spec: ToolSpec): Promise<void> {
     let cachedPath = find(spec.name, spec.version);
 
     if (!cachedPath) {
-        safeInfo(`Downloading ${spec.name} ${spec.version}...`);
+        info(`Downloading ${spec.name} ${spec.version}...`);
         const downloaded = await downloadTool(spec.downloadUrl);
 
         if (spec.type === "binary") {
@@ -64,9 +65,9 @@ async function ensureTool(spec: ToolSpec): Promise<void> {
             cachedPath = await cacheDir(toolHome, spec.name, spec.version);
         }
 
-        safeInfo(`${spec.name} ${spec.version} installed successfully.`);
+        info(`${spec.name} ${spec.version} installed successfully.`);
     } else {
-        safeInfo(`${spec.name} ${spec.version} found in tool-cache.`);
+        info(`${spec.name} ${spec.version} found in tool-cache.`);
     }
 
     addPath(spec.binSubPath ? join(cachedPath, spec.binSubPath) : cachedPath);
@@ -83,12 +84,11 @@ export async function setupDependencies(): Promise<void> {
             await ensureTool(tool);
         }
 
-        const inputSoloVersion = getInput("soloVersion");
-        const soloVersion = inputSoloVersion || "latest";
-        safeInfo(`Installing Solo CLI version: ${soloVersion}`);
+        const soloVersion = getInput("soloVersion") || "latest";
+        info(`Installing Solo CLI version: ${soloVersion}`);
         await runCommand(`npm install -g @hashgraph/solo@${soloVersion}`);
 
-        safeInfo("✅ All dependencies installed successfully.");
+        info("✅ All dependencies installed successfully.");
     } catch (error: unknown) {
         throw new Error(
             `Dependency setup failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -105,7 +105,7 @@ async function checkSoloVersion(): Promise<boolean> {
         let stdout = "";
         let stderr = "";
 
-        await safeExec("solo", ["--version"], {
+        await exec("solo", ["--version"], {
             listeners: {
                 stdout: (data: Buffer) => { stdout += data.toString(); },
                 stderr: (data: Buffer) => { stderr += data.toString(); },
@@ -115,21 +115,21 @@ async function checkSoloVersion(): Promise<boolean> {
         });
 
         const combined = `${stdout}\n${stderr}`.trim();
-        safeInfo(`[checkSoloVersion] raw output: ${combined}`);
+        info(`[checkSoloVersion] raw output: ${combined}`);
 
         const match = combined.match(/Version\s*:\s*(\d+\.\d+\.\d+)/);
         if (!match) {
-            safeInfo("[checkSoloVersion] Could not parse version. Assuming >= 0.44.0.");
+            info("[checkSoloVersion] Could not parse version. Assuming >= 0.44.0.");
             return true;
         }
 
         const version = match[1];
         const ge0440 = isVersionGte(version, "0.44.0");
-        safeInfo(`[checkSoloVersion] version=${version}, >= 0.44.0: ${ge0440}`);
+        info(`[checkSoloVersion] version=${version}, >= 0.44.0: ${ge0440}`);
         return ge0440;
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
-        safeInfo(`[checkSoloVersion] Failed to detect version: ${msg}. Assuming >= 0.44.0.`);
+        info(`[checkSoloVersion] Failed to detect version: ${msg}. Assuming >= 0.44.0.`);
         return true;
     }
 }

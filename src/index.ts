@@ -1,8 +1,8 @@
+import { setFailed } from "@actions/core";
 import { setupDependencies, resolveSoloContext } from "./setup.js";
 import { deployConsensusNetwork }               from "./network.js";
 import { deployMirrorNode, deployRelay }        from "./services.js";
 import { createAccount }                        from "./accounts.js";
-import { safeSetFailed }                        from "./utils.js";
 
 async function run(): Promise<void> {
     await setupDependencies();
@@ -18,5 +18,5 @@ async function run(): Promise<void> {
 
 run().catch((error: unknown) => {
     const msg = error instanceof Error ? error.message : String(error);
-    safeSetFailed(`Unhandled error: ${msg}`);
+    setFailed(`Unhandled error: ${msg}`);
 });

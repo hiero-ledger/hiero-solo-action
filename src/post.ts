@@ -1,5 +1,5 @@
-import { getState, warning, error as coreError } from "@actions/core";
-import { runCommand, safeInfo } from "./utils.js";
+import { getState, warning, error as coreError, info } from "@actions/core";
+import { runCommand } from "./utils.js";
 import { CLUSTER_NAME } from "./constants.js";
 import { homedir } from "os";
 import { join } from "path";
@@ -16,12 +16,12 @@ async function cleanup(): Promise<void> {
     const savedClusterName = getState("clusterName");
     const clusterName = savedClusterName ?? CLUSTER_NAME;
 
-    safeInfo(`[cleanup] Starting cleanup for cluster: ${clusterName}`);
+    info(`[cleanup] Starting cleanup for cluster: ${clusterName}`);
 
     // Deletes the kind cluster
     try {
         await runCommand(`kind delete cluster --name ${clusterName}`);
-        safeInfo(`[cleanup] Cluster '${clusterName}' deleted successfully`);
+        info(`[cleanup] Cluster '${clusterName}' deleted successfully`);
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         warning(
@@ -33,7 +33,7 @@ async function cleanup(): Promise<void> {
     const soloConfigDir = join(homedir(), ".solo");
     try {
         rmSync(soloConfigDir, { recursive: true, force: true });
-        safeInfo(`[cleanup] Removed Solo config directory: ${soloConfigDir}`);
+        info(`[cleanup] Removed Solo config directory: ${soloConfigDir}`);
     } catch (err: unknown) {
         const message = err instanceof Error ? err.message : String(err);
         warning(`[cleanup] Failed to remove Solo config directory: ${message}`);

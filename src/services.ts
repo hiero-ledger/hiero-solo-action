@@ -1,4 +1,5 @@
-import { soloRun, safeGetInput, safeInfo, runCommand, portForwardIfExists } from "./utils.js";
+import { getInput, info } from "@actions/core";
+import { soloRun, runCommand, portForwardIfExists } from "./utils.js";
 import type { SoloContext } from "./types.js";
 import {
     DEFAULT_MIRROR_NODE_PORT_REST,
@@ -19,15 +20,15 @@ import { existsSync } from "fs";
  * mirror-ingress-controller (--enable-ingress).
  */
 export async function deployMirrorNode(ctx: SoloContext): Promise<void> {
-    const installMirrorNode = safeGetInput("installMirrorNode") === "true";
-    const installRelay = safeGetInput("installRelay") === "true";
+    const installMirrorNode = getInput("installMirrorNode") === "true";
+    const installRelay = getInput("installRelay") === "true";
     if (!installMirrorNode && !installRelay) return;
 
-    const version = safeGetInput("mirrorNodeVersion");
-    const portRest = safeGetInput("mirrorNodePortRest") || DEFAULT_MIRROR_NODE_PORT_REST;
-    const portGrpc = safeGetInput("mirrorNodePortGrpc") || DEFAULT_MIRROR_NODE_PORT_GRPC;
-    const portWeb3 = safeGetInput("mirrorNodePortWeb3Rest") || DEFAULT_MIRROR_NODE_PORT_WEB3;
-    const javaRestApiPort = safeGetInput("javaRestApiPort") || DEFAULT_JAVA_REST_API_PORT;
+    const version = getInput("mirrorNodeVersion");
+    const portRest = getInput("mirrorNodePortRest") || DEFAULT_MIRROR_NODE_PORT_REST;
+    const portGrpc = getInput("mirrorNodePortGrpc") || DEFAULT_MIRROR_NODE_PORT_GRPC;
+    const portWeb3 = getInput("mirrorNodePortWeb3Rest") || DEFAULT_MIRROR_NODE_PORT_WEB3;
+    const javaRestApiPort = getInput("javaRestApiPort") || DEFAULT_JAVA_REST_API_PORT;
 
     // Relay requires mirror-ingress-controller
     const enableIngress = installRelay;
@@ -35,7 +36,7 @@ export async function deployMirrorNode(ctx: SoloContext): Promise<void> {
     try {
         await soloRun(ctx.cmd.deployMirrorNode(ctx.clusterName, ctx.deployment, version, enableIngress));
 
-        safeInfo(`Listing services in namespace ${ctx.namespace}:`);
+        info(`Listing services in namespace ${ctx.namespace}:`);
         await runCommand(`kubectl get svc -n ${ctx.namespace}`);
 
         await portForwardIfExists("mirror-1-rest",     `${portRest}:${MIRROR_NODE_REST_INTERNAL_PORT}`, ctx.namespace);
@@ -52,9 +53,9 @@ export async function deployMirrorNode(ctx: SoloContext): Promise<void> {
  * Deploys the JSON-RPC Relay.
  */
 export async function deployRelay(ctx: SoloContext): Promise<void> {
-    if (safeGetInput("installRelay") !== "true") return;
+    if (getInput("installRelay") !== "true") return;
 
-    const relayPort = safeGetInput("relayPort") || DEFAULT_RELAY_PORT;
+    const relayPort = getInput("relayPort") || DEFAULT_RELAY_PORT;
 
     try {
         const workspacePath = process.env.GITHUB_WORKSPACE ?? ".";
@@ -62,9 +63,9 @@ export async function deployRelay(ctx: SoloContext): Promise<void> {
         const valuesFile = existsSync(relayValuesFile) ? relayValuesFile : undefined;
 
         await soloRun(ctx.cmd.deployRelay(ctx.deployment, valuesFile));
-        safeInfo("JSON-RPC-Relay installed successfully");
+        info("JSON-RPC-Relay installed successfully");
 
-        safeInfo(`Listing services in namespace ${ctx.namespace}:`);
+        info(`Listing services in namespace ${ctx.namespace}:`);
         await runCommand(`kubectl get svc -n ${ctx.namespace}`);
 
         await portForwardIfExists(
@@ -74,6 +75,6 @@ export async function deployRelay(ctx: SoloContext): Promise<void> {
         );
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
-        safeInfo(`Relay deployment failed: ${msg}, continuing...`);
+        info(`Relay deployment failed: ${msg}, continuing...`);
     }
 }

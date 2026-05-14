@@ -1,9 +1,7 @@
-import { saveState } from "@actions/core";
+import { getInput, info, saveState } from "@actions/core";
 import {
     soloRun,
     runCommand,
-    safeGetInput,
-    safeInfo,
     portForwardIfExists,
 } from "./utils.js";
 import type { SoloContext } from "./types.js";
@@ -53,9 +51,9 @@ async function setupNamespace(ctx: SoloContext): Promise<void> {
  * Must run after setupNamespace and before deployNetwork.
  */
 async function deployBlockNode(ctx: SoloContext, hieroVersion: string): Promise<void> {
-    if (safeGetInput("installBlockNode") !== "true") return;
+    if (getInput("installBlockNode") !== "true") return;
 
-    safeInfo(
+    info(
         `[deployBlockNode] Deploying block node — cluster=${ctx.clusterName}, deployment=${ctx.deployment}, version=${hieroVersion}`,
     );
     await soloRun(
@@ -96,13 +94,13 @@ async function setupHostsEntries(ctx: SoloContext, dualMode: boolean): Promise<v
             for (const entry of entries) {
                 await runCommand(`bash -c 'echo "${entry}" | sudo tee -a /etc/hosts'`);
             }
-            safeInfo("Successfully added entries to /etc/hosts");
+            info("Successfully added entries to /etc/hosts");
         } else {
-            safeInfo("⚠️  No sudo access available, skipping /etc/hosts update. Nodes can still be accessed via localhost.");
+            info("⚠️  No sudo access available, skipping /etc/hosts update. Nodes can still be accessed via localhost.");
         }
     } catch (error: unknown) {
         const msg = error instanceof Error ? error.message : String(error);
-        safeInfo(`⚠️  Failed to update /etc/hosts: ${msg}, continuing...`);
+        info(`⚠️  Failed to update /etc/hosts: ${msg}, continuing...`);
     }
 }
 
@@ -125,14 +123,14 @@ async function portForwardConsensusServices(
             `${HAPROXY_NODE2_EXTERNAL_PORT}:${HAPROXY_INTERNAL_PORT}`,
             ctx.namespace,
         );
-        safeInfo(`HAProxy for node2 is accessible on port ${HAPROXY_NODE2_EXTERNAL_PORT}`);
+        info(`HAProxy for node2 is accessible on port ${HAPROXY_NODE2_EXTERNAL_PORT}`);
 
         await portForwardIfExists(
             "envoy-proxy-node2-svc",
             `${dualModeGrpcProxyPort}:${GRPC_PROXY_INTERNAL_PORT}`,
             ctx.namespace,
         );
-        safeInfo(`gRPC proxy for node2 is accessible on port ${dualModeGrpcProxyPort}`);
+        info(`gRPC proxy for node2 is accessible on port ${dualModeGrpcProxyPort}`);
     }
 
     await portForwardIfExists(
@@ -152,22 +150,22 @@ async function portForwardConsensusServices(
  * - /etc/hosts entries + port-forwards
  */
 export async function deployConsensusNetwork(ctx: SoloContext): Promise<void> {
-    const hieroVersion = safeGetInput("hieroVersion");
-    const dualMode = safeGetInput("dualMode") === "true";
-    const haproxyPort = safeGetInput("haproxyPort") || DEFAULT_HAPROXY_PORT;
-    const grpcProxyPort = safeGetInput("grpcProxyPort") || DEFAULT_GRPC_PROXY_PORT;
+    const hieroVersion = getInput("hieroVersion");
+    const dualMode = getInput("dualMode") === "true";
+    const haproxyPort = getInput("haproxyPort") || DEFAULT_HAPROXY_PORT;
+    const grpcProxyPort = getInput("grpcProxyPort") || DEFAULT_GRPC_PROXY_PORT;
     const dualModeGrpcProxyPort =
-        safeGetInput("dualModeGrpcProxyPort") || DEFAULT_DUAL_MODE_GRPC_PROXY_PORT;
+        getInput("dualModeGrpcProxyPort") || DEFAULT_DUAL_MODE_GRPC_PROXY_PORT;
 
     if (!hieroVersion) {
-        safeInfo("Hiero version not found, skipping deployment");
+        info("Hiero version not found, skipping deployment");
         return;
     }
 
     const numNodes = dualMode ? 2 : 1;
     const nodeIds = dualMode ? "node1,node2" : "node1";
 
-    safeInfo(
+    info(
         `[deployConsensusNetwork] ge0440=${ctx.ge0440}, dualMode=${dualMode}, nodes=${numNodes}, hieroVersion=${hieroVersion}, cluster=${ctx.clusterName}`,
     );
 
@@ -194,7 +192,7 @@ export async function deployConsensusNetwork(ctx: SoloContext): Promise<void> {
         await setupNodes(ctx, nodeIds, hieroVersion);
         await startNodes(ctx, nodeIds);
 
-        safeInfo(`Listing services in namespace ${ctx.namespace}:`);
+        info(`Listing services in namespace ${ctx.namespace}:`);
         await runCommand(`kubectl get svc -n ${ctx.namespace}`);
 
         await setupHostsEntries(ctx, dualMode);

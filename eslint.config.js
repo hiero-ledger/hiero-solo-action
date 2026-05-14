@@ -11,7 +11,7 @@ export default tseslint.config(
     js.configs.recommended,
     ...tseslint.configs.recommendedTypeChecked,
 
-    /*************** Prettier plugin (reports formatting as errors) *******/
+    // Prettier plugin (reports formatting as errors)
     {
         plugins: { prettier: prettierPlugin },
         rules: {
@@ -19,7 +19,7 @@ export default tseslint.config(
         },
     },
 
-    /***************** TypeScript rules *******************/
+    // TypeScript rules 
     {
         files: ["**/*.ts"],
         languageOptions: {
@@ -28,15 +28,6 @@ export default tseslint.config(
                 projectService: true,
                 tsconfigRootDir: import.meta.dirname,
             },
-        },
-        rules: {
-            "@typescript-eslint/no-unused-vars": "error",
-            "@typescript-eslint/no-explicit-any": "error",
-            "@typescript-eslint/no-unsafe-call": "error",
-            "@typescript-eslint/no-unsafe-assignment": "error",
-            "@typescript-eslint/no-unsafe-argument": "error",
-            "@typescript-eslint/no-unsafe-return": "error",
-            "@typescript-eslint/no-unsafe-member-access": "error",
         },
     },
     {
