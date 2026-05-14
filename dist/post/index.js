@@ -30925,22 +30925,6 @@ function getIDToken(aud) {
 
 
 
-/**
- * Extracts the account information from the output text
- * @param inputText - The text to extract the account information from
- * @returns The account information as a JSON string
- */
-function extractAccountAsJson(inputText) {
-    const jsonRegex = /\{\s*"accountId":\s*".*?",\s*"publicKey":\s*".*?",\s*"balance":\s*\d+\s*\}/s;
-    const match = inputText.match(jsonRegex);
-    if (match) {
-        return match[0];
-    }
-    else {
-        throw new Error("No JSON block found in output");
-    }
-}
-// ─── Command helpers ─────────────────────────────────────────────────────────
 function stripQuotes(arg) {
     if ((arg.startsWith('"') && arg.endsWith('"')) ||
         (arg.startsWith("'") && arg.endsWith("'"))) {
@@ -30970,7 +30954,21 @@ async function runCommand(commandStr, options) {
 async function soloRun(commandStr, options) {
     return runCommand(commandStr, options);
 }
-// ─── Port forwarding ─────────────────────────────────────────────────────────
+/**
+ * Extracts the account information from the output text
+ * @param inputText - The text to extract the account information from
+ * @returns The account information as a JSON string
+ */
+function extractAccountAsJson(inputText) {
+    const jsonRegex = /\{\s*"accountId":\s*".*?",\s*"publicKey":\s*".*?",\s*"balance":\s*\d+\s*\}/s;
+    const match = inputText.match(jsonRegex);
+    if (match) {
+        return match[0];
+    }
+    else {
+        throw new Error("No JSON block found in output");
+    }
+}
 /**
  * Port-forwards a Kubernetes service if it exists in the given namespace.
  */
@@ -30992,7 +30990,6 @@ async function portForwardIfExists(service, portSpec, namespace) {
         info(`Service ${service} not found or error occurred: ${msg}, skipping port-forward`);
     }
 }
-// ─── Version helpers ─────────────────────────────────────────────────────────
 /**
  * Returns true when `version` is greater than or equal to `target`.
  */
