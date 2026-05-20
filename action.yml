@@ -1,5 +1,13 @@
-name: "Hiero Solo Action"
-description: "Run a Hiero based network by using the solo tool"
+name: Hiero Solo Action
+description: Setup a Hiero Solo
+author: Hiero Ledger
+
+# Branding
+branding:
+  icon: "share-2"
+  color: "blue"
+
+# Inputs
 inputs:
   installMirrorNode:
     description: "Defines if a mirror node should be installed"
@@ -72,10 +80,8 @@ inputs:
 outputs:
   accountId:
     description: "Account ID of the generated ED25519 account (default for simplicity)"
-    value: ${{ steps.create-ed25519.outputs.accountId }}
   publicKey:
     description: "Public key of the generated ED25519 account (default for simplicity)"
-    value: ${{ steps.create-ed25519.outputs.publicKey }}
   privateKey:
     description: "Private key of the generated ED25519 account (default for simplicity)"
     value: ${{ steps.create-ed25519.outputs.privateKey }}
@@ -84,382 +90,18 @@ outputs:
     value: "solo-deployment"
   ecdsaAccountId:
     description: "ECDSA account id of generated account"
-    value: ${{ steps.create-ecdsa.outputs.accountId }}
   ecdsaPublicKey:
     description: "ECDSA public key of generated account"
-    value: ${{ steps.create-ecdsa.outputs.publicKey }}
   ecdsaPrivateKey:
     description: "ECDSA private key of generated account"
-    value: ${{ steps.create-ecdsa.outputs.privateKey }}
   ed25519AccountId:
     description: "ED25519 account id of generated account"
-    value: ${{ steps.create-ed25519.outputs.accountId }}
   ed25519PublicKey:
     description: "ED25519 public key of generated account"
-    value: ${{ steps.create-ed25519.outputs.publicKey }}
   ed25519PrivateKey:
     description: "ED25519 private key of generated account"
-    value: ${{ steps.create-ed25519.outputs.privateKey }}
+
 runs:
-  using: "composite"
-  steps:
-    - name: Print inputs
-      shell: bash
-      run: |
-        echo "installMirrorNode: ${{ inputs.installMirrorNode }}"
-        echo "is installMirrorNode: ${{ inputs.installMirrorNode == 'true' }}"
-        echo "installBlockNode: ${{ inputs.installBlockNode }}"
-        echo "is installBlockNode: ${{ inputs.installBlockNode == 'true' }}"
-
-    - name: Setup Java
-      uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
-      with:
-        distribution: temurin
-        java-version: 21
-
-    - name: Setup Node
-      uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
-      with:
-        node-version: 22
-
-    - name: Install WGet CLI
-      shell: bash
-      run: sudo apt-get update && sudo apt-get install -y wget
-
-    - name: Install Python
-      uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b # v5.3.0
-      with:
-        python-version: "3.10"
-
-    - name: Setup Kind
-      uses: helm/kind-action@a1b0e391336a6ee6713a0583f8c6240d70863de3 # v1.12.0
-      with:
-        install_only: true
-        node_image: kindest/node:v1.31.4@sha256:2cb39f7295fe7eafee0842b1052a599a4fb0f8bcf3f83d96c7f4864c357c6c30
-        version: v0.26.0
-        kubectl_version: v1.31.4
-        verbosity: 3
-        wait: 120s
-
-    - name: Cleanup Previous Runs
-      shell: bash
-      run: |
-        rm -rf ~/.solo
-        kind delete cluster --name solo-e2e || true
-
-    - name: Install Solo
-      shell: bash
-      run: npm install -g @hashgraph/solo@${{ inputs.soloVersion }}
-
-    # Solo version has changed command values after 0.44.0. Commands should be executed based on
-    # https://github.com/hiero-ledger/solo/blob/main/docs/site/content/en/docs/cli-migrations.md
-    - name: Check Solo Version
-      id: check-solo-version
-      shell: bash
-      run: |
-        version=$(solo --version | grep Version | awk '{print $3}')
-        solo_ge_0440=$([[ "$(printf '%s\n' "${version}" "0.44.0" | sort -V | head -n1)" == "0.44.0" ]] && echo "true" || echo "false")
-        echo "solo-ge-0440=${solo_ge_0440}" >> "${GITHUB_OUTPUT}"
-
-    - name: Deploy Solo Test Network
-      shell: bash
-      env:
-        SOLO_CLUSTER_NAME: solo-e2e
-        SOLO_NAMESPACE: solo
-        SOLO_CLUSTER_SETUP_NAMESPACE: solo-cluster
-        SOLO_DEPLOYMENT: solo-deployment
-        HIERO_VERSION: ${{ inputs.hieroVersion }}
-        INSTALL_BLOCK_NODE: ${{ inputs.installBlockNode }}
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-        DUAL_MODE: ${{ inputs.dualMode }}
-      run: |
-        # Create a Kubernetes cluster using kind
-        kind create cluster -n ${SOLO_CLUSTER_NAME}
-
-        # Initialize the Solo CLI configuration
-        solo init --dev
-
-        # Determine number of nodes based on dual mode
-        if [[ "${DUAL_MODE}" == "true" ]]; then
-          NUM_NODES=2
-          NODE_IDS="node1,node2"
-        else
-          NUM_NODES=1
-          NODE_IDS="node1"
-        fi
-
-        echo "Deploying ${NUM_NODES} consensus node(s)..."
-
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          echo "::debug::Using Solo CLI commands for version >= 0.44.0"
-          # Connect the Solo CLI to the kind cluster using a cluster reference name
-          solo cluster-ref config connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --dev
-          # Create deployment
-          solo deployment config create -n ${SOLO_NAMESPACE} --deployment ${SOLO_DEPLOYMENT} --dev
-
-          # Add the kind cluster to the deployment
-          solo deployment cluster attach --deployment ${SOLO_DEPLOYMENT} --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes ${NUM_NODES} --dev
-
-          # Generate node keys
-          solo keys consensus generate --gossip-keys --tls-keys -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --dev
-
-          # Setup the Solo cluster
-          solo cluster-ref config setup -s ${SOLO_CLUSTER_NAME} --dev
-
-          # Optionally deploy a block node before the consensus network is deployed.
-          if [[ "${INSTALL_BLOCK_NODE}" == "true" ]]; then
-            solo block node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
-          fi
-
-          # Deploy network
-          solo consensus network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
-
-          # Setup and start nodes
-          solo consensus node setup -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --quiet-mode --dev
-          solo consensus node start -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --dev
-        else
-          echo "::debug::Using Solo CLI commands for version < 0.44.0"
-          solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --dev
-          solo deployment create -n ${SOLO_NAMESPACE} --deployment ${SOLO_DEPLOYMENT} --dev
-          solo deployment add-cluster --deployment ${SOLO_DEPLOYMENT} --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes ${NUM_NODES} --dev
-          
-          # Generate node keys
-          solo node keys --gossip-keys --tls-keys -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --dev
-          
-          solo cluster-ref setup -s ${SOLO_CLUSTER_NAME} --dev
-
-          # Optionally deploy a block node before the consensus network is deployed.
-          if [[ "${INSTALL_BLOCK_NODE}" == "true" ]]; then
-            solo block node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
-          fi
-          
-          # Deploy network
-          solo network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
-          
-          # Setup and start nodes
-          solo node setup -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --quiet-mode --dev
-          solo node start -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --dev
-        fi
-
-        # Debug: List services in the solo namespace
-        echo "Listing services in namespace ${SOLO_NAMESPACE}:"
-        kubectl get svc -n ${SOLO_NAMESPACE}
-
-        # Debug: Show current user
-        echo "Current user: $(whoami)"
-
-        # Add entries to /etc/hosts for easier access (requires sudo)
-        echo "Attempting to add entries to /etc/hosts..."
-        if sudo -n true 2>/dev/null; then
-          echo "127.0.0.1 network-node1-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
-          echo "127.0.0.1 envoy-proxy-node1-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
-          if [[ "${DUAL_MODE}" == "true" ]]; then
-            echo "127.0.0.1 network-node2-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
-            echo "127.0.0.1 envoy-proxy-node2-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
-          fi
-          echo "Successfully added entries to /etc/hosts"
-        else
-          echo "⚠️  No sudo access available, skipping /etc/hosts update"
-          echo "Nodes can still be accessed via localhost:50211 and localhost:50212"
-        fi
-
-        # Port forward HAProxy for node1 (only if service exists)
-        if kubectl get svc haproxy-node1-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/haproxy-node1-svc -n ${SOLO_NAMESPACE} ${{ inputs.haproxyPort }}:50211 &
-        else
-          echo "HAProxy service haproxy-node1-svc not found, skipping port-forward"
-        fi
-
-        # Port forward services for node2 if dual mode is enabled
-        if [[ "${DUAL_MODE}" == "true" ]]; then
-          # Port forward HAProxy for node2 (only if service exists)
-          if kubectl get svc haproxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-            kubectl port-forward svc/haproxy-node2-svc -n ${SOLO_NAMESPACE} 51211:50211 &
-            echo "HAProxy for node2 is accessible on port 51211"
-          else
-            echo "HAProxy service haproxy-node2-svc not found, skipping port-forward"
-          fi
-
-          # Port forward gRPC proxy for node2 (only if service exists)
-          if kubectl get svc envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-            kubectl port-forward svc/envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} ${{ inputs.dualModeGrpcProxyPort }}:8080 &
-            echo "gRPC proxy for node2 is accessible on port ${{ inputs.dualModeGrpcProxyPort }}"
-          else
-            echo "gRPC proxy service envoy-proxy-node2-svc not found, skipping port-forward"
-          fi
-        fi
-
-        # Port forward gRPC proxy (only if service exists)
-        if kubectl get svc envoy-proxy-node1-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/envoy-proxy-node1-svc -n ${SOLO_NAMESPACE} ${{ inputs.grpcProxyPort }}:8080 &
-        else
-          echo "gRPC proxy service envoy-proxy-node1-svc not found, skipping port-forward"
-        fi
-
-    # Mirror node is required when installRelay is true (relay expects mirror-ingress-controller).
-    - name: Deploy MirrorNode
-      if: ${{ inputs.installMirrorNode == 'true' || inputs.installRelay == 'true' }} # see https://github.com/actions/runner/issues/2238
-      shell: bash
-      env:
-        SOLO_NAMESPACE: solo
-        SOLO_DEPLOYMENT: solo-deployment
-        SOLO_CLUSTER_NAME: solo-e2e
-        MIRROR_NODE_VERSION: ${{ inputs.mirrorNodeVersion }}
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-        # Relay requires mirror-ingress-controller; --enable-ingress installs it.
-        ENABLE_INGRESS: ${{ inputs.installRelay == 'true' }}
-      run: |
-        ENABLE_INGRESS_FLAG=""
-        if [[ "${ENABLE_INGRESS}" == "true" ]]; then
-          ENABLE_INGRESS_FLAG="--enable-ingress"
-        fi
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo mirror node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger ${ENABLE_INGRESS_FLAG} --dev
-        else
-          solo mirror-node deploy --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger ${ENABLE_INGRESS_FLAG} --dev
-        fi
-
-        # Debug: List services in the solo namespace
-        echo "Listing services in namespace ${SOLO_NAMESPACE}:"
-        kubectl get svc -n ${SOLO_NAMESPACE}
-        # Port forward mirror node REST API (only if service exists)
-        if kubectl get svc mirror-1-rest -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-1-rest -n ${SOLO_NAMESPACE} ${{ inputs.mirrorNodePortRest }}:80 &
-        else
-          echo "Mirror node service mirror-1-rest not found, skipping port-forward"
-        fi
-        # Port forward mirror node gRPC (only if service exists)
-        if kubectl get svc mirror-1-grpc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-1-grpc -n ${SOLO_NAMESPACE} ${{ inputs.mirrorNodePortGrpc }}:5600 &
-        else
-          echo "Mirror node service mirror-1-grpc not found, skipping port-forward"
-        fi
-        # Port forward mirror node web3 (only if service exists)
-        if kubectl get svc mirror-1-web3 -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-1-web3 -n ${SOLO_NAMESPACE} ${{ inputs.mirrorNodePortWeb3Rest }}:80 &
-        else
-          echo "Mirror node service mirror-1-web3 not found, skipping port-forward"
-        fi
-        # Port forward Java REST API (only if service exists)
-        if kubectl get svc mirror-1-restjava -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/mirror-1-restjava -n ${SOLO_NAMESPACE} ${{ inputs.javaRestApiPort }}:80 &
-        else
-          echo "Java REST API service mirror-1-restjava not found, skipping port-forward"
-        fi
-
-    - name: Deploy JSON-RPC-Relay
-      if: ${{ inputs.installRelay == 'true' }}
-      shell: bash
-      env:
-        SOLO_NAMESPACE: solo
-        SOLO_DEPLOYMENT: solo-deployment
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-      run: |
-        RELAY_VALUES_FILE="${GITHUB_WORKSPACE}/relay-low-resources.yaml"
-        RELAY_VALUES_FLAG=""
-        if [[ -f "${RELAY_VALUES_FILE}" ]]; then
-          RELAY_VALUES_FLAG="--values-file ${RELAY_VALUES_FILE}"
-        fi
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo relay node add -i node1 --deployment ${SOLO_DEPLOYMENT} --dev ${RELAY_VALUES_FLAG}
-        else
-          solo relay deploy -i node1 --deployment ${SOLO_DEPLOYMENT} --dev ${RELAY_VALUES_FLAG}
-        fi
-        echo "JSON-RPC-Relay installed successfully"
-
-        # Debug: List services in the solo namespace
-        echo "Listing services in namespace ${SOLO_NAMESPACE}:"
-        kubectl get svc -n ${SOLO_NAMESPACE}
-
-        # Port forward JSON-RPC-Relay (only if service exists)
-        if kubectl get svc relay-node1-hedera-json-rpc-relay -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/relay-node1-hedera-json-rpc-relay -n ${SOLO_NAMESPACE} ${{ inputs.relayPort }}:7546 &
-        else
-          echo "JSON-RPC-Relay service relay-node1-hedera-json-rpc-relay not found, Skipping port-forward"
-        fi
-
-    - name: Create ECDSA Account
-      id: create-ecdsa
-      shell: bash
-      env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-        SOLO_NAMESPACE: solo
-        SOLO_DEPLOYMENT: solo-deployment
-        HBAR_AMOUNT: ${{ inputs.hbarAmount || 10000000 }}
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-      run: |
-        echo "Creating ECDSA account..."
-
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo ledger account create --generate-ecdsa-key --deployment ${SOLO_DEPLOYMENT} --dev > account_create_output_ecdsa.txt
-        else
-          solo account create --generate-ecdsa-key --deployment ${SOLO_DEPLOYMENT} --dev > account_create_output_ecdsa.txt
-        fi
-
-        cat account_create_output_ecdsa.txt
-        JSON=$(cat account_create_output_ecdsa.txt | python3 ${GITHUB_ACTION_PATH}/extractAccountAsJson.py) || {
-          echo "Error: Python script extractAccountAsJson.py failed"
-          exit 1
-        }
-
-        export ACCOUNT_ID=$(echo ${JSON} | jq -r '.accountId')
-        export ACCOUNT_PUBLIC_KEY=$(echo ${JSON} | jq -r '.publicKey')
-        export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-${ACCOUNT_ID} -n ${SOLO_NAMESPACE} -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo ledger account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}" --dev
-        else
-          solo account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}" --dev
-        fi
-
-        echo "accountId=${ACCOUNT_ID}"
-        echo "publicKey=${ACCOUNT_PUBLIC_KEY}"
-        echo "privateKey=${ACCOUNT_PRIVATE_KEY}"
-        echo "accountId=${ACCOUNT_ID}" >> ${GITHUB_OUTPUT}
-        echo "publicKey=${ACCOUNT_PUBLIC_KEY}" >> ${GITHUB_OUTPUT}
-        echo "privateKey=${ACCOUNT_PRIVATE_KEY}" >> ${GITHUB_OUTPUT}
-
-    - name: Create ED25519 Account
-      id: create-ed25519
-      shell: bash
-      env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-        SOLO_NAMESPACE: solo
-        SOLO_DEPLOYMENT: solo-deployment
-        HBAR_AMOUNT: ${{ inputs.hbarAmount || 10000000 }}
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-      run: |
-        echo "Creating ED25519 account..."
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo ledger account create --deployment ${SOLO_DEPLOYMENT} --dev > account_create_output_ed25519.txt
-        else
-          solo account create --deployment ${SOLO_DEPLOYMENT} --dev > account_create_output_ed25519.txt
-        fi
-
-        cat account_create_output_ed25519.txt
-        JSON=$(cat account_create_output_ed25519.txt | python3 ${GITHUB_ACTION_PATH}/extractAccountAsJson.py) || {
-          echo "Error: Python script extractAccountAsJson.py failed"
-          exit 1
-        }
-
-        export ACCOUNT_ID=$(echo ${JSON} | jq -r '.accountId')
-        export ACCOUNT_PUBLIC_KEY=$(echo ${JSON} | jq -r '.publicKey')
-        export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-${ACCOUNT_ID} -n ${SOLO_NAMESPACE} -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo ledger account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}" --dev
-        else
-          solo account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}" --dev
-        fi
-
-        echo "accountId=${ACCOUNT_ID}"
-        echo "publicKey=${ACCOUNT_PUBLIC_KEY}"
-        echo "privateKey=${ACCOUNT_PRIVATE_KEY}"
-        echo "accountId=${ACCOUNT_ID}" >> ${GITHUB_OUTPUT}
-        echo "publicKey=${ACCOUNT_PUBLIC_KEY}" >> ${GITHUB_OUTPUT}
-        echo "privateKey=${ACCOUNT_PRIVATE_KEY}" >> ${GITHUB_OUTPUT}
-
-# Ref: https://haya14busa.github.io/github-action-brandings/
-branding:
-  icon: "share-2"
-  color: "black"
+  using: node24
+  main: dist/index.js
+  post: dist/post/index.js

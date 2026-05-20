@@ -1,0 +1,6 @@
+# Ignore everything
+*
+
+# Except src JS/TS files
+!src/**/*.ts
+!src/**/*.js
