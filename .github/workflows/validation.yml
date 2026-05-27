@@ -165,7 +165,7 @@ jobs:
           # Wait for the mirror node to be fully up and running
           sleep 10
 
-          RESPONSE=$(curl -s -w "%{http_code}" -X 'GET' 'http://localhost:5551/api/v1/network/nodes' -H 'accept: application/json' -o response.json)
+          RESPONSE=$(curl -s -w "%{http_code}" -X 'GET' 'http://localhost:38081/api/v1/network/nodes' -H 'accept: application/json' -o response.json)
 
           if [ "$RESPONSE" -ne 200 ]; then
             echo "❌ Error: API request failed with status code $RESPONSE"
@@ -233,14 +233,14 @@ jobs:
             exit 1
           fi
           echo "Using relay Service: ${RELAY_SVC}"
-          kubectl port-forward "svc/${RELAY_SVC}" -n solo 7546:7546 &
+          kubectl port-forward "svc/${RELAY_SVC}" -n solo 37546:7546 &
           PF_PID=$!
           trap 'kill "${PF_PID}" 2>/dev/null || true' EXIT
           sleep 2
 
           RESPONSE=000
           for _ in $(seq 1 90); do
-            RESPONSE=$(curl -s -w "%{http_code}" -X POST 'http://localhost:7546' \
+            RESPONSE=$(curl -s -w "%{http_code}" -X POST 'http://localhost:37546' \
               -H 'Content-Type: application/json' \
               -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
               -o response.json) || RESPONSE="000"

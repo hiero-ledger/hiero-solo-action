@@ -22,7 +22,7 @@ inputs:
   mirrorNodePortRest:
     description: "Port for Mirror Node REST API"
     required: false
-    default: "5551"
+    default: "38081"
   mirrorNodePortGrpc:
     description: "Port for Mirror Node gRPC"
     required: false
@@ -39,7 +39,7 @@ inputs:
   relayPort:
     description: "Port for JSON-RPC-Relay"
     required: false
-    default: "7546"
+    default: "37546"
   grpcProxyPort:
     description: "Port for gRPC Proxy"
     required: false
@@ -49,13 +49,13 @@ inputs:
     required: false
     default: "9999"
   haproxyPort:
-    description: "Port for HAProxy"
+    description: "Port for HAProxy (consensus node gRPC)"
     required: false
-    default: "50211"
+    default: "35211"
   soloVersion:
     description: "Version of Solo CLI to install"
     required: false
-    default: "0.69.0"
+    default: "0.74.0"
   javaRestApiPort:
     description: "Port for Java-based REST API"
     required: false
@@ -260,7 +260,7 @@ runs:
           echo "Successfully added entries to /etc/hosts"
         else
           echo "⚠️  No sudo access available, skipping /etc/hosts update"
-          echo "Nodes can still be accessed via localhost:50211 and localhost:50212"
+          echo "Nodes can still be accessed via localhost:${{ inputs.haproxyPort }} and localhost:36211 (dual mode)"
         fi
 
         # Port forward HAProxy for node1 (only if service exists)
@@ -274,8 +274,8 @@ runs:
         if [[ "${DUAL_MODE}" == "true" ]]; then
           # Port forward HAProxy for node2 (only if service exists)
           if kubectl get svc haproxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-            kubectl port-forward svc/haproxy-node2-svc -n ${SOLO_NAMESPACE} 51211:50211 &
-            echo "HAProxy for node2 is accessible on port 51211"
+            kubectl port-forward svc/haproxy-node2-svc -n ${SOLO_NAMESPACE} 36211:50211 &
+            echo "HAProxy for node2 is accessible on port 36211"
           else
             echo "HAProxy service haproxy-node2-svc not found, skipping port-forward"
           fi

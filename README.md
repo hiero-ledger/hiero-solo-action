@@ -7,8 +7,8 @@
 A GitHub Action for setting up a Hiero Solo network.
 An overview of the usage and idea of the action can be found [here](https://dev.to/hendrikebbers/ci-for-hedera-based-projects-2nja).
 
-The network that is created by the action contains one consensus node that can be accessed at `localhost:50211`.
-Optionally, you can deploy a second consensus node by enabling `dualMode: true`. When dual mode is enabled, the second node is accessible at `localhost:51211`.
+The network that is created by the action contains one consensus node that can be accessed at `localhost:35211` (Solo 0.63+ default local port).
+Optionally, you can deploy a second consensus node by enabling `dualMode: true`. When dual mode is enabled, the second node is accessible at `localhost:36211`.
 You can optionally provision a block node by enabling `installBlockNode: true`. The action reuses `hieroVersion` as the Solo block node `--release-tag`.
 When a mirror node is installed, the Java-based REST API can be accessed at `localhost:8084`.
 The action creates an account on the network that contains 10,000,000 hbars.
@@ -26,15 +26,15 @@ The GitHub action takes the following inputs:
 | `hieroVersion`           | false    | `v0.72.0`  | Hiero consensus node version to use. When `installBlockNode` is enabled, this same value is passed to Solo as the block node release tag. |
 | `installBlockNode`       | false    | `false`    | If set to `true`, the action provisions a block node before consensus node deployment. No separate block-node version input is exposed.    |
 | `mirrorNodeVersion`      | false    | `v0.151.0` | Mirror node version to use                                                                                                                 |
-| `installMirrorNode`      | false    | `false`    | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node can be accessed at `localhost:5551`. |
-| `mirrorNodePortRest`     | false    | `5551`     | Port for Mirror Node REST API                                                                                                              |
+| `installMirrorNode`      | false    | `false`    | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node REST API can be accessed at `localhost:38081`. |
+| `mirrorNodePortRest`     | false    | `38081`    | Port for Mirror Node REST API                                                                                                              |
 | `mirrorNodePortGrpc`     | false    | `5600`     | Port for Mirror Node gRPC                                                                                                                  |
 | `mirrorNodePortWeb3Rest` | false    | `8545`     | Port for Web3 REST API                                                                                                                     |
 | `installRelay`           | false    | `false`    | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process.                                                 |
-| `relayPort`              | false    | `7546`     | Port for the JSON-RPC-Relay                                                                                                                |
+| `relayPort`              | false    | `37546`    | Port for the JSON-RPC-Relay                                                                                                                |
 | `grpcProxyPort`          | false    | `9998`     | Port for gRPC Proxy                                                                                                                        |
 | `dualModeGrpcProxyPort`  | false    | `9999`     | Port for the gRPC Proxy of the second consensus node (only if dual mode is enabled)                                                        |
-| `haproxyPort`            | false    | `50211`    | Port for HAProxy                                                                                                                           |
+| `haproxyPort`            | false    | `35211`    | Port for HAProxy (consensus node gRPC)                                                                                                     |
 | `soloVersion`            | false    | `0.69.0`   | Version of Solo CLI to install                                                                                                             |
 | `javaRestApiPort`        | false    | `8084`     | Port for Java-based REST API                                                                                                               |
 | `dualMode`               | false    | `false`    | Enable dual mode to deploy two consensus nodes                                                                                             |
@@ -144,8 +144,8 @@ Use `installBlockNode: true` to provision a block node. The action reuses the ex
     echo "Checking services for both nodes..."
     kubectl get svc -n solo
     kubectl get pods -n solo
-    echo "Node 1 is accessible at localhost:50211"
-    echo "Node 2 is accessible at localhost:51211"
+    echo "Node 1 is accessible at localhost:35211"
+    echo "Node 2 is accessible at localhost:36211"
     echo "Account ID: ${{ steps.solo.outputs.accountId }}"
 ```
 
