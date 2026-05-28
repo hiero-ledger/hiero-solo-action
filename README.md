@@ -7,6 +7,16 @@
 A GitHub Action for setting up a Hiero Solo network.
 An overview of the usage and idea of the action can be found [here](https://dev.to/hendrikebbers/ci-for-hedera-based-projects-2nja).
 
+> [!WARNING]
+> Default localhost ports were changed to align with Solo 0.63+ defaults.
+> If you relied on previous defaults, update your configuration or explicitly set action inputs.
+>
+> Changed defaults:
+> - `haproxyPort`: `50211` -> `35211`
+> - `mirrorNodePortRest`: `5551` -> `38081`
+> - `relayPort`: `7546` -> `37546`
+> - Dual mode node 2 HAProxy: `51211` -> `36211`
+
 The network that is created by the action contains one consensus node that can be accessed at `localhost:35211` (Solo 0.63+ default local port).
 Optionally, you can deploy a second consensus node by enabling `dualMode: true`. When dual mode is enabled, the second node is accessible at `localhost:36211`.
 You can optionally provision a block node by enabling `installBlockNode: true`. The action reuses `hieroVersion` as the Solo block node `--release-tag`.
