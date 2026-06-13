@@ -47,6 +47,7 @@ The GitHub action takes the following inputs:
 | `haproxyPort`            | false    | `35211`    | Port for HAProxy (consensus node gRPC)                                                                                                     |
 | `soloVersion`            | false    | `0.69.0`   | Version of Solo CLI to install                                                                                                             |
 | `javaRestApiPort`        | false    | `8084`     | Port for Java-based REST API                                                                                                               |
+| `nodeVersion`            | false    | `24`       | Node.js version to use for Solo CLI installation. Must be 22 or higher.                                                                    |
 | `dualMode`               | false    | `false`    | Enable dual mode to deploy two consensus nodes                                                                                             |
 
 > [! IMPORTANT]

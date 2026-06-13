@@ -65,6 +65,10 @@ inputs:
     required: false
     default: false
     type: boolean
+  nodeVersion:
+    description: "Node.js version to use for Solo CLI installation"
+    required: false
+    default: "24"
   hbarAmount:
     description: "Amount of HBAR to be assigned to the created accounts"
     required: false
@@ -111,6 +115,16 @@ runs:
         echo "installBlockNode: ${{ inputs.installBlockNode }}"
         echo "is installBlockNode: ${{ inputs.installBlockNode == 'true' }}"
 
+    - name: Validate Node.js version
+      shell: bash
+      run: |
+        NODE_VERSION="${{ inputs.nodeVersion }}"
+        MAJOR_VERSION=$(echo "${NODE_VERSION}" | grep -oE '^[0-9]+')
+        if [ -z "${MAJOR_VERSION}" ] || [ "${MAJOR_VERSION}" -lt 22 ]; then
+          echo "::error::Node.js version must be 22 or higher. Solo does not support Node.js < 22. Got: ${NODE_VERSION}"
+          exit 1
+        fi
+
     - name: Setup Java
       uses: actions/setup-java@99b8673ff64fbf99d8d325f52d9a5bdedb8483e9 # v4.2.1
       with:
@@ -120,7 +134,7 @@ runs:
     - name: Setup Node
       uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4.0.3
       with:
-        node-version: 22
+        node-version: ${{ inputs.nodeVersion }}
 
     - name: Install WGet CLI
       shell: bash
