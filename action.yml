@@ -81,7 +81,7 @@ outputs:
     description: "Public key of the generated ED25519 account (default for simplicity)"
     value: ${{ steps.create-ed25519.outputs.publicKey }}
   privateKey:
-    description: "Private key of the generated ED25519 account (default for simplicity)"
+    description: "Private key of the generated ED25519 account in DER-encoded hex (default for simplicity)"
     value: ${{ steps.create-ed25519.outputs.privateKey }}
   deployment:
     description: "Name of the Solo deployment created by the action"
@@ -102,8 +102,11 @@ outputs:
     description: "ED25519 public key of generated account"
     value: ${{ steps.create-ed25519.outputs.publicKey }}
   ed25519PrivateKey:
-    description: "ED25519 private key of generated account"
+    description: "ED25519 private key of generated account (DER-encoded hex)"
     value: ${{ steps.create-ed25519.outputs.privateKey }}
+  ed25519PrivateKeyRaw:
+    description: "ED25519 private key of generated account (raw 32-byte hex)"
+    value: ${{ steps.create-ed25519.outputs.privateKeyRaw }}
 runs:
   using: "composite"
   steps:
@@ -479,6 +482,13 @@ runs:
         export ACCOUNT_PUBLIC_KEY=$(echo ${JSON} | jq -r '.publicKey')
         export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-${ACCOUNT_ID} -n ${SOLO_NAMESPACE} -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
 
+        ED25519_DER_PREFIX="302e020100300506032b657004220420"
+        export ACCOUNT_PRIVATE_KEY_RAW="${ACCOUNT_PRIVATE_KEY#${ED25519_DER_PREFIX}}"
+        if [[ ${#ACCOUNT_PRIVATE_KEY_RAW} -ne 64 ]]; then
+          echo "Error: Failed to derive raw ED25519 private key from DER format"
+          exit 1
+        fi
+
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
           solo ledger account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}" --dev
         else
@@ -488,9 +498,11 @@ runs:
         echo "accountId=${ACCOUNT_ID}"
         echo "publicKey=${ACCOUNT_PUBLIC_KEY}"
         echo "privateKey=${ACCOUNT_PRIVATE_KEY}"
+        echo "privateKeyRaw=${ACCOUNT_PRIVATE_KEY_RAW}"
         echo "accountId=${ACCOUNT_ID}" >> ${GITHUB_OUTPUT}
         echo "publicKey=${ACCOUNT_PUBLIC_KEY}" >> ${GITHUB_OUTPUT}
         echo "privateKey=${ACCOUNT_PRIVATE_KEY}" >> ${GITHUB_OUTPUT}
+        echo "privateKeyRaw=${ACCOUNT_PRIVATE_KEY_RAW}" >> ${GITHUB_OUTPUT}
 
 # Ref: https://haya14busa.github.io/github-action-brandings/
 branding:

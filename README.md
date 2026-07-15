@@ -61,7 +61,7 @@ The GitHub action takes the following inputs:
 | -------------------------------------- | ---------------------------------------------------------- |
 | `steps.solo.outputs.accountId`         | The account ID of account created in ED25519 format.       |
 | `steps.solo.outputs.publicKey`         | The public key of account created in ED25519 format.       |
-| `steps.solo.outputs.privateKey`        | The private key of account created in ED25519 format.      |
+| `steps.solo.outputs.privateKey`        | The private key of account created in ED25519 format (DER-encoded hex, `302e...`). |
 | `steps.solo.outputs.deployment`        | The name of the Solo deployment created by the action.     |
 | `steps.solo.outputs.ecdsaAccountId`    | The account ID of the account created (in ECDSA format).   |
 | `steps.solo.outputs.ecdsaPublicKey`    | The public key of the account created (in ECDSA format).   |
@@ -69,6 +69,7 @@ The GitHub action takes the following inputs:
 | `steps.solo.outputs.ed25519AccountId`  | Same as `accountId`, but with an explicit ED25519 format!  |
 | `steps.solo.outputs.ed25519PublicKey`  | Same as `publicKey`, but with an explicit ED25519 format!  |
 | `steps.solo.outputs.ed25519PrivateKey` | Same as `privateKey`, but with an explicit ED25519 format! |
+| `steps.solo.outputs.ed25519PrivateKeyRaw` | Raw 32-byte ED25519 private key as hex (64 characters). |
 
 # Simple usage
 
@@ -109,6 +110,7 @@ The GitHub action takes the following inputs:
   run: |
     echo "Account ID: ${{ steps.solo.outputs.ed25519AccountId }}"
     echo "Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
+    echo "Private Key (raw): ${{ steps.solo.outputs.ed25519PrivateKeyRaw }}"
     echo "Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
 ```
 
