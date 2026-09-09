@@ -6,10 +6,14 @@ on:
   pull_request:
     branches:
       - main
+    # ready_for_review is not in the default type list; without it, un-drafting a PR fires no
+    # event and the checks below would never start.
+    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   validate-outputs:
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -38,7 +42,8 @@ jobs:
         run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
   validate-outputs-pre-0440:
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -52,7 +57,13 @@ jobs:
         id: solo
         uses: ./
         with:
+          # hieroVersion and mirrorNodeVersion are deliberately left unset: this job also covers the
+          # action resolving them to the versions the pinned Solo release supports.
           soloVersion: '0.43.2'
+          # Solo < 0.44 is the only place the legacy "mirror" Helm release name is exercised
+          # (Solo >= 0.44 uses "mirror-1", covered by validate-mirror-node), so keep the mirror
+          # node installed here to guard the fallback in the action's release-name lookup.
+          installMirrorNode: true
 
       - name: ✅ Validate Hiero Solo Outputs
         env:
@@ -69,7 +80,8 @@ jobs:
         run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
   validate-hbar-amount:
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -91,6 +103,7 @@ jobs:
         run: solo ledger account info --account-id "${ACCOUNT_ID}" --deployment "solo-deployment"
 
   validate-block-node:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -106,7 +119,6 @@ jobs:
         uses: ./
         with:
           installBlockNode: true
-          hieroVersion: 'v0.73.0'
 
       - name: ✅ Validate Block Node Deployment
         run: |
@@ -133,7 +145,8 @@ jobs:
           kubectl wait -n solo --for=condition=Ready "${BLOCK_NODE_POD}" --timeout=300s
 
   validate-mirror-node:
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -163,13 +176,46 @@ jobs:
           echo "ED25519 Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
           echo "ED25519 Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
 
-          # Wait for the mirror node to be fully up and running
-          sleep 10
+          # Wait for the actual Kubernetes-level readiness signal instead of guessing with a fixed
+          # sleep: the restjava pod's image pull + JVM start can take a while, especially right
+          # after the mirror node deploy step returns.
+          kubectl wait -n solo --for=condition=Ready pod -l app.kubernetes.io/name=restjava --timeout=300s
 
-          RESPONSE=$(curl -s -w "%{http_code}" -X 'GET' 'http://localhost:38081/api/v1/network/nodes' -H 'accept: application/json' -o response.json)
+          # The setup step's own backgrounded port-forward for restjava may still be holding its
+          # port but no longer actually forwarding traffic (a kubectl port-forward tunnel can go
+          # dead without releasing its listening socket). Use a different local port so we always
+          # get a fresh, known-good tunnel instead of racing/reusing that one.
+          MIRROR_RESTJAVA_LOCAL_PORT=18084
+          # Same label the readiness wait above uses, so the Service is found whatever Solo named
+          # the mirror release (mirror-1-restjava on Solo >= 0.44, mirror-restjava before it).
+          RESTJAVA_SVC=$(kubectl get svc -n solo -l app.kubernetes.io/name=restjava -o name | head -n1)
+          if [ -z "${RESTJAVA_SVC}" ]; then
+            echo "❌ Error: mirror node restjava service not found (label app.kubernetes.io/name=restjava)"
+            kubectl get svc -n solo
+            exit 1
+          fi
+          kubectl port-forward "${RESTJAVA_SVC}" -n solo "${MIRROR_RESTJAVA_LOCAL_PORT}:80" &
+          PF_PID=$!
+          trap 'kill "${PF_PID}" 2>/dev/null || true' EXIT
+          sleep 2
 
-          if [ "$RESPONSE" -ne 200 ]; then
-            echo "❌ Error: API request failed with status code $RESPONSE"
+          # /api/v1/network/nodes is served by the Java REST module (javaRestApiPort), not the
+          # JS REST module (mirrorNodePortRest) - mirror-node moved this endpoint there.
+          # The pod is Ready by now, but poll a few times anyway in case the freshly started
+          # port-forward itself needs a beat to finish establishing its tunnel.
+          MAX_ATTEMPTS=10
+          RESPONSE=000
+          for attempt in $(seq 1 "${MAX_ATTEMPTS}"); do
+            RESPONSE=$(curl -s -w "%{http_code}" -X 'GET' "http://localhost:${MIRROR_RESTJAVA_LOCAL_PORT}/api/v1/network/nodes" -H 'accept: application/json' -o response.json || echo "000")
+            if [ "${RESPONSE}" = "200" ]; then
+              break
+            fi
+            echo "Mirror node API not ready yet (attempt ${attempt}/${MAX_ATTEMPTS}, status ${RESPONSE}), retrying in 3s..."
+            sleep 3
+          done
+
+          if [ "${RESPONSE}" != "200" ]; then
+            echo "❌ Error: API request failed with status code ${RESPONSE} after ${MAX_ATTEMPTS} attempts"
             cat response.json
             exit 1
           else
@@ -178,7 +224,8 @@ jobs:
           fi
 
   validate-json-rpc-relay:
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -221,28 +268,28 @@ jobs:
           echo "ED25519 Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
           echo "ED25519 Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
 
-          # Port-forwards from the setup step do not carry over to the next step; start one here.
-          # Relay Service name varies by Solo/chart version (e.g. relay-1 vs relay-node1-hedera-json-rpc-relay).
-          RELAY_SVC=""
-          if kubectl get svc relay-node1-hedera-json-rpc-relay -n solo >/dev/null 2>&1; then
-            RELAY_SVC=relay-node1-hedera-json-rpc-relay
-          elif kubectl get svc relay-1 -n solo >/dev/null 2>&1; then
-            RELAY_SVC=relay-1
-          fi
+          # Look the Service up by the label Solo sets, which covers every Solo/chart version
+          # (relay-1, relay-node1-hedera-json-rpc-relay, ...) and skips the "-ws" websocket Service.
+          RELAY_SVC=$(kubectl get svc -n solo -l app.kubernetes.io/name=relay -o name | head -n1)
           if [ -z "${RELAY_SVC}" ]; then
-            echo "❌ Error: JSON-RPC relay service not found (tried relay-node1-hedera-json-rpc-relay, relay-1)"
+            echo "❌ Error: JSON-RPC relay service not found (label app.kubernetes.io/name=relay)"
             kubectl get svc -n solo
             exit 1
           fi
           echo "Using relay Service: ${RELAY_SVC}"
-          kubectl port-forward "svc/${RELAY_SVC}" -n solo 37546:7546 &
+
+          # The setup step already forwards the relay on 37546, but a kubectl port-forward tunnel
+          # can go dead while still holding its listening socket. Use a dedicated local port so this
+          # check always gets a fresh, known-good tunnel instead of racing that one for 37546.
+          RELAY_LOCAL_PORT=17546
+          kubectl port-forward "${RELAY_SVC}" -n solo "${RELAY_LOCAL_PORT}:7546" &
           PF_PID=$!
           trap 'kill "${PF_PID}" 2>/dev/null || true' EXIT
           sleep 2
 
           RESPONSE=000
           for _ in $(seq 1 90); do
-            RESPONSE=$(curl -s -w "%{http_code}" -X POST 'http://localhost:37546' \
+            RESPONSE=$(curl -s -w "%{http_code}" -X POST "http://localhost:${RELAY_LOCAL_PORT}" \
               -H 'Content-Type: application/json' \
               -d '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
               -o response.json) || RESPONSE="000"
@@ -271,7 +318,8 @@ jobs:
           cat response.json
 
   validate-grpc-connections:
-    runs-on: ubuntu-latest
+    if: ${{ !github.event.pull_request.draft }}
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -300,6 +348,7 @@ jobs:
           bash ${GITHUB_WORKSPACE}/scripts/check-grpc-connections.sh
 
   validate-grpc-connections-with-mirror:
+    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
