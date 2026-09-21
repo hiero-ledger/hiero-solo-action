@@ -1,0 +1,103 @@
+name: Validate Local Setup
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'local/**'
+      - 'extractAccountAsJson.py'
+      - '.github/workflows/validate-local-setup.yml'
+
+jobs:
+  validate-dockerfile-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: 🔨 Build Docker Image
+        working-directory: local
+        run: docker build -t hiero/solo-runner . --build-context gh=..
+
+  validate-docker-compose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: ⚙️ Run Docker Compose Setup
+        working-directory: local
+        run: docker compose up --build --exit-code-from solo-test-cluster
+
+      - name: ✅ Validate HAProxy Connectivity
+        run: |
+          echo "Checking HAProxy on port 50211..."
+          nc -z localhost 50211 && echo "HAProxy is accessible at localhost:50211"
+
+  validate-plain-docker:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: 🔨 Build Docker Image
+        working-directory: local
+        run: docker build -t hiero/solo-runner . --build-context gh=..
+
+      - name: ⚙️ Run Docker Container
+        run: docker run -v /var/run/docker.sock:/var/run/docker.sock --network host hiero/solo-runner
+
+      - name: ✅ Validate HAProxy Connectivity
+        run: |
+          echo "Checking HAProxy on port 50211..."
+          nc -z localhost 50211 && echo "HAProxy is accessible at localhost:50211"
+
+  validate-local-docs:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@0634a2670c59f64b4a01f0f96f84700a4088b9f0 # v2.12.0
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: ✅ Validate Documentation Completeness
+        run: |
+          echo "Checking local/README.md content..."
+          grep -q "Docker Compose" local/README.md
+          grep -q "Plain Docker" local/README.md
+          grep -q "50211" local/README.md
+          echo "Checking referenced scripts exist..."
+          test -f local/all-in-setup.sh
+          test -f local/setup-solo-test-net.sh
+          test -f local/create-ecdsa-account.sh
+          test -f local/kind-config.yaml
+          test -f local/haproxy-svc-patch.yaml
+          test -f extractAccountAsJson.py
+          echo "✅ All documentation checks passed"
