@@ -1,0 +1,14 @@
+version: 2
+updates:
+  # Covers workflows and the composite action.yml.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      github-actions:
+        patterns: ['*']
+  - package-ecosystem: docker
+    directory: /.clusterfuzzlite
+    schedule:
+      interval: weekly
