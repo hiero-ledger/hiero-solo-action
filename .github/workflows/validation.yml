@@ -37,37 +37,36 @@ jobs:
           ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
         run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
-  # Disabled: Solo 0.43.2 deploys quay.io/minio/minio, which no longer allows anonymous pulls.
-  # validate-outputs-pre-0440:
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - name: Harden the runner (Audit all outbound calls)
-  #       uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
-  #       with:
-  #         egress-policy: audit
-  #
-  #     - name: 🚀 Checkout Repo
-  #       uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
-  #
-  #     - name: ⚙️ Setup Hiero Solo
-  #       id: solo
-  #       uses: ./
-  #       with:
-  #         soloVersion: '0.43.2'
-  #
-  #     - name: ✅ Validate Hiero Solo Outputs
-  #       env:
-  #         ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
-  #         PRIVATE_KEY: ${{ steps.solo.outputs.privateKey }}
-  #         PUBLIC_KEY: ${{ steps.solo.outputs.publicKey }}
-  #         ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
-  #         ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
-  #         ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
-  #         ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
-  #         ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
-  #         ED25519_PRIVATE_KEY_RAW: ${{ steps.solo.outputs.ed25519PrivateKeyRaw }}
-  #         ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
-  #       run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
+  validate-outputs-pre-0440:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@9af89fc71515a100421586dfdb3dc9c984fbf411 # v2.19.4
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+
+      - name: ⚙️ Setup Hiero Solo
+        id: solo
+        uses: ./
+        with:
+          soloVersion: '0.43.2'
+
+      - name: ✅ Validate Hiero Solo Outputs
+        env:
+          ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
+          PRIVATE_KEY: ${{ steps.solo.outputs.privateKey }}
+          PUBLIC_KEY: ${{ steps.solo.outputs.publicKey }}
+          ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
+          ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
+          ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
+          ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
+          ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
+          ED25519_PRIVATE_KEY_RAW: ${{ steps.solo.outputs.ed25519PrivateKeyRaw }}
+          ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
+        run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
 
   validate-hbar-amount:
     runs-on: ubuntu-latest
