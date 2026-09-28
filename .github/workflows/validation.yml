@@ -105,7 +105,6 @@ jobs:
         id: solo
         uses: ./
         with:
-          soloVersion: v0.69.1
           installBlockNode: true
           hieroVersion: 'v0.73.0'
 
