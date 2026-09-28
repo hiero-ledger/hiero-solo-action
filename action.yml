@@ -55,7 +55,7 @@ inputs:
   soloVersion:
     description: "Version of Solo CLI to install"
     required: false
-    default: "0.88.0"
+    default: "0.91.0"
   javaRestApiPort:
     description: "Port for Java-based REST API"
     required: false
@@ -269,8 +269,8 @@ runs:
             solo block node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
           fi
           
-          # Deploy network
-          solo network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
+          # Deploy network. Override the Quay MinIO tenant image; anonymous pulls were disabled.
+          solo network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --values-file "${{ github.action_path }}/minio-silo-values.yaml" --dev
           
           # Setup and start nodes
           solo node setup -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --quiet-mode --dev
