@@ -184,6 +184,9 @@ runs:
           npm install -g "@hiero-ledger/solo@${version}"
         else
           npm install -g "@hashgraph/solo@${version}"
+          # Solo < 0.44.0 depends on @hiero-ledger/sdk ^2.70.0. From 2.89.0, Client.ping throws for
+          # node accounts missing from the network map, which breaks node staking in these releases.
+          npm install --prefix "$(npm root -g)/@hashgraph/solo" --no-save "@hiero-ledger/sdk@2.88.0"
         fi
         solo --version
 
