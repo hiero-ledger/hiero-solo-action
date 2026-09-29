@@ -15,7 +15,7 @@ ARG HELM_VERSION=3.17.4
 RUN wget -O ./helm.tgz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz
 RUN tar xzvf ./helm.tgz
 
-FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
+FROM node:26-alpine@sha256:0b36e8c136b94cd4fcf02188228e76c31ad5872eef3fec8cbd2eee500cfd9e80
 COPY --from=installer ./kind /usr/local/bin/kind
 COPY --from=installer ./docker/docker /usr/local/bin/docker
 COPY --from=installer ./kubectl /usr/local/bin/kubectl
