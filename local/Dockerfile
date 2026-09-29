@@ -1,4 +1,4 @@
-FROM busybox:1.37.0 AS installer
+FROM busybox:1.37.0@sha256:9db7b59979c38555a39def84a31fb98b5296952f9e3afd4f6f11f05b07adfab0 AS installer
 ARG KIND_VERSION=0.29.0
 RUN wget -O ./kind https://kind.sigs.k8s.io/dl/v${KIND_VERSION}/kind-linux-amd64
 RUN chmod +x ./kind
@@ -15,7 +15,7 @@ ARG HELM_VERSION=3.17.4
 RUN wget -O ./helm.tgz https://get.helm.sh/helm-v${HELM_VERSION}-linux-amd64.tar.gz
 RUN tar xzvf ./helm.tgz
 
-FROM node:22-alpine
+FROM node:22-alpine@sha256:c610fcdfb1d5b4740dd70c284ed3cb16bb857e0f7166196e36a5501df7a3aa32
 COPY --from=installer ./kind /usr/local/bin/kind
 COPY --from=installer ./docker/docker /usr/local/bin/docker
 COPY --from=installer ./kubectl /usr/local/bin/kubectl

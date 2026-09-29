@@ -55,7 +55,7 @@ inputs:
   soloVersion:
     description: "Version of Solo CLI to install"
     required: false
-    default: "0.88.0"
+    default: "0.91.0"
   javaRestApiPort:
     description: "Port for Java-based REST API"
     required: false
@@ -129,13 +129,13 @@ runs:
         fi
 
     - name: Setup Java
-      uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+      uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
       with:
         distribution: temurin
         java-version: 21
 
     - name: Setup Node
-      uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6.4.0
+      uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
       with:
         node-version: ${{ inputs.nodeVersion }}
 
@@ -144,12 +144,12 @@ runs:
       run: sudo apt-get update && sudo apt-get install -y wget
 
     - name: Install Python
-      uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+      uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
         python-version: "3.10"
 
     - name: Setup Kind
-      uses: helm/kind-action@ef37e7f390d99f746eb8b610417061a60e82a6cc # v1.14.0
+      uses: helm/kind-action@06c1ae10762d3b9c1644e7fe69596ae519e015a2 # v1.15.0
       with:
         install_only: true
         node_image: kindest/node:v1.32.2@sha256:3966f21e12b760f6585bde7140cae5e8cdc0e52b37a6f90ce39834b6e72e3f49
@@ -184,6 +184,9 @@ runs:
           npm install -g "@hiero-ledger/solo@${version}"
         else
           npm install -g "@hashgraph/solo@${version}"
+          # Solo < 0.44.0 depends on @hiero-ledger/sdk ^2.70.0. From 2.89.0, Client.ping throws for
+          # node accounts missing from the network map, which breaks node staking in these releases.
+          npm install --prefix "$(npm root -g)/@hashgraph/solo" --no-save "@hiero-ledger/sdk@2.88.0"
         fi
         solo --version
 
@@ -269,8 +272,8 @@ runs:
             solo block node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
           fi
           
-          # Deploy network
-          solo network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
+          # Deploy network. Override the Quay MinIO tenant image; anonymous pulls were disabled.
+          solo network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --values-file "${{ github.action_path }}/minio-silo-values.yaml" --dev
           
           # Setup and start nodes
           solo node setup -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --quiet-mode --dev

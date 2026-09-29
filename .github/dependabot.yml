@@ -1,14 +1,21 @@
 version: 2
 updates:
-  # Covers workflows and the composite action.yml.
-  - package-ecosystem: github-actions
-    directory: /
+  - package-ecosystem: "github-actions"
+    directory: "/"
     schedule:
-      interval: weekly
+      interval: "weekly"
+    open-pull-requests-limit: 5
     groups:
-      github-actions:
-        patterns: ['*']
-  - package-ecosystem: docker
-    directory: /.clusterfuzzlite
+      github-actions-deps:
+        patterns:
+          - "*"
+  - package-ecosystem: "docker"
+    directory: "/local"
     schedule:
-      interval: weekly
+      interval: "weekly"
+    open-pull-requests-limit: 5
+  - package-ecosystem: "docker"
+    directory: "/.clusterfuzzlite"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
