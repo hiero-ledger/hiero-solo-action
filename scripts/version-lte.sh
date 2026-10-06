@@ -3,7 +3,7 @@
 # A leading "v" on either argument is ignored, so "v0.44.0" and "0.44.0" compare as equal.
 #
 # Usage:
-#   bash scripts/version-lte.sh 0.44.0 "${soloVersion}"   # true when solo is >= 0.44.0
+#   bash scripts/version-lte.sh 0.44.0 "${soloVersion}"   # true when soloVersion is >= 0.44.0
 set -euo pipefail
 
 if [[ $# -ne 2 ]]; then
