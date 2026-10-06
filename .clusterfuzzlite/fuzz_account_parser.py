@@ -16,7 +16,8 @@ def test_one_input(data):
         assert result in text
         assert extract_account_json(result) == result
 
-    # Structured inputs ensure mutations reach successful extraction as well.
+    # Regression guard: generated blocks must still be extracted from arbitrary
+    # surrounding text. This half always passes with the current regex.
     account = {
         "accountId": "0.0." + str(len(data)),
         "publicKey": data.hex(),
