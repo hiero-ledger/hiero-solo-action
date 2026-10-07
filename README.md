@@ -194,6 +194,10 @@ Use `installBlockNode: true` to provision a block node. The action reuses the ex
 
 The [README.md](./local/README.md) describes how to set up a local solo test network only with Docker.
 
+## Security Testing
+
+The action is continuously checked with CodeQL and ClusterFuzzLite. See [docs/security-testing.md](./docs/security-testing.md) for details and how to run the tests locally.
+
 ## Tributes
 
 This action is based on the work of [Hiero Solo](https://github.com/hiero-ledger/solo).
