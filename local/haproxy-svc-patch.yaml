@@ -1,4 +1,0 @@
-spec:
-  ports:
-    - nodePort: 32767
-      port: 50211

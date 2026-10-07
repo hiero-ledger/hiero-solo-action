@@ -3,7 +3,7 @@ description: "Run a Hiero based network by using the solo tool"
 inputs:
   installMirrorNode:
     description: "Defines if a mirror node should be installed"
-    required: true
+    required: false
     default: false
     type: boolean
   installBlockNode:
@@ -53,9 +53,9 @@ inputs:
     required: false
     default: "35211"
   soloVersion:
-    description: "Version of Solo CLI to install"
+    description: "Version of Solo CLI to install (0.44.0 or newer)"
     required: false
-    default: "0.91.0"
+    default: "0.92.0"
   javaRestApiPort:
     description: "Port for Java-based REST API"
     required: false
@@ -109,24 +109,14 @@ outputs:
     value: ${{ steps.create-ed25519.outputs.privateKeyRaw }}
 runs:
   using: "composite"
+  # Every step delegates to a script under scripts/; inputs reach the scripts only through env.
   steps:
-    - name: Print inputs
+    - name: Validate inputs
       shell: bash
-      run: |
-        echo "installMirrorNode: ${{ inputs.installMirrorNode }}"
-        echo "is installMirrorNode: ${{ inputs.installMirrorNode == 'true' }}"
-        echo "installBlockNode: ${{ inputs.installBlockNode }}"
-        echo "is installBlockNode: ${{ inputs.installBlockNode == 'true' }}"
-
-    - name: Validate Node.js version
-      shell: bash
-      run: |
-        NODE_VERSION="${{ inputs.nodeVersion }}"
-        MAJOR_VERSION=$(echo "${NODE_VERSION}" | grep -oE '^[0-9]+')
-        if [ -z "${MAJOR_VERSION}" ] || [ "${MAJOR_VERSION}" -lt 22 ]; then
-          echo "::error::Node.js version must be 22 or higher. Solo does not support Node.js < 22. Got: ${NODE_VERSION}"
-          exit 1
-        fi
+      env:
+        NODE_VERSION: ${{ inputs.nodeVersion }}
+        SOLO_VERSION: ${{ inputs.soloVersion }}
+      run: bash "${{ github.action_path }}/scripts/validate-action-inputs.sh"
 
     - name: Setup Java
       uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
@@ -139,11 +129,7 @@ runs:
       with:
         node-version: ${{ inputs.nodeVersion }}
 
-    - name: Install WGet CLI
-      shell: bash
-      run: sudo apt-get update && sudo apt-get install -y wget
-
-    - name: Install Python
+    - name: Setup Python
       uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
       with:
         python-version: "3.10"
@@ -158,430 +144,56 @@ runs:
         verbosity: 3
         wait: 120s
 
-    - name: Install Helm
-      shell: bash
-      run: |
-        set -euo pipefail
-        HELM_VERSION=v3.14.2
-        curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-linux-amd64.tar.gz" | tar xz -C /tmp
-        sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm
-        helm version
-
-    - name: Cleanup Previous Runs
-      shell: bash
-      run: |
-        rm -rf ~/.solo
-        kind delete cluster --name solo-e2e || true
-
-    - name: Install Solo
+    - name: Install Solo CLI
       shell: bash
       env:
-        SOLO_VERSION_INPUT: ${{ inputs.soloVersion }}
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-      run: |
-        set -euo pipefail
-        version="${SOLO_VERSION_INPUT#v}"
-        # Solo moved from the @hashgraph scope to @hiero-ledger with the 0.44.0 release.
-        if bash "${GITHUB_ACTION_PATH}/scripts/version-lte.sh" "0.44.0" "${version}"; then
-          npm install -g "@hiero-ledger/solo@${version}"
-        else
-          npm install -g "@hashgraph/solo@${version}"
-          # Solo < 0.44.0 depends on @hiero-ledger/sdk ^2.70.0. From 2.89.0, Client.ping throws for
-          # node accounts missing from the network map, which breaks node staking in these releases.
-          npm install --prefix "$(npm root -g)/@hashgraph/solo" --no-save "@hiero-ledger/sdk@2.88.0"
-        fi
-        solo --version
+        SOLO_VERSION: ${{ inputs.soloVersion }}
+      run: bash "${{ github.action_path }}/scripts/install-solo.sh"
 
-    # Solo version has changed command values after 0.44.0. Commands should be executed based on
-    # https://solo.hiero.org/docs/advanced-solo-setup/cli/cli-migrations/
-    - name: Check Solo Version
-      id: check-solo-version
+    - name: Deploy consensus network
       shell: bash
       env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-      run: |
-        version=$(solo --version | grep Version | awk '{print $3}')
-        if bash "${GITHUB_ACTION_PATH}/scripts/version-lte.sh" "0.44.0" "${version}"; then
-          solo_ge_0440="true"
-        else
-          solo_ge_0440="false"
-        fi
-        echo "solo-ge-0440=${solo_ge_0440}" >> "${GITHUB_OUTPUT}"
-
-    # Every Solo release pins the component versions it was built and tested against, and those
-    # pins move together with the bundled solo-deployment chart. Solo < 0.44 ships chart 0.54.x,
-    # whose consensus node image only provides a Java 21 runtime, while consensus node >= v0.73.0
-    # is compiled for Java 25 - combining them makes the node die on startup with
-    # UnsupportedClassVersionError and never reach ACTIVE. Resolve the unset version inputs to the
-    # values matching the installed Solo release instead of a single hard-coded pair.
-    - name: Resolve Component Versions
-      id: component-versions
-      shell: bash
-      env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-        HIERO_VERSION_INPUT: ${{ inputs.hieroVersion }}
-        MIRROR_NODE_VERSION_INPUT: ${{ inputs.mirrorNodeVersion }}
-        SOLO_VERSION_INPUT: ${{ inputs.soloVersion }}
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-      run: |
-        set -euo pipefail
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          SOLO_MATCHED_HIERO_VERSION="v0.75.1"
-          SOLO_MATCHED_MIRROR_NODE_VERSION="v0.161.0"
-        else
-          SOLO_MATCHED_HIERO_VERSION="v0.65.1"
-          SOLO_MATCHED_MIRROR_NODE_VERSION="v0.138.0"
-        fi
-
-        HIERO_VERSION="${HIERO_VERSION_INPUT:-${SOLO_MATCHED_HIERO_VERSION}}"
-        MIRROR_NODE_VERSION="${MIRROR_NODE_VERSION_INPUT:-${SOLO_MATCHED_MIRROR_NODE_VERSION}}"
-
-        # Warn rather than fail: an explicit override stays the caller's call, but without this the
-        # only symptom is 'node start' hanging on "Check all nodes are ACTIVE" until it times out.
-        LAST_JAVA_21_HIERO_VERSION="v0.72.1"
-        if [[ "${SOLO_GE_0440}" != "true" ]] \
-          && ! bash "${GITHUB_ACTION_PATH}/scripts/version-lte.sh" "${HIERO_VERSION}" "${LAST_JAVA_21_HIERO_VERSION}"; then
-          echo "::warning::Consensus node ${HIERO_VERSION} requires Java 25, but Solo ${SOLO_VERSION_INPUT} bundles a chart providing only a Java 21 runtime (highest supported: ${LAST_JAVA_21_HIERO_VERSION}). The consensus node will fail to start."
-        fi
-
-        echo "Resolved consensus node version: ${HIERO_VERSION}"
-        echo "Resolved mirror node version: ${MIRROR_NODE_VERSION}"
-        echo "hiero-version=${HIERO_VERSION}" >> "${GITHUB_OUTPUT}"
-        echo "mirror-node-version=${MIRROR_NODE_VERSION}" >> "${GITHUB_OUTPUT}"
-
-    - name: Deploy Solo Test Network
-      shell: bash
-      env:
-        SOLO_CLUSTER_NAME: solo-e2e
-        SOLO_NAMESPACE: solo
-        SOLO_CLUSTER_SETUP_NAMESPACE: solo-cluster
-        SOLO_DEPLOYMENT: solo-deployment
-        HIERO_VERSION: ${{ steps.component-versions.outputs.hiero-version }}
+        HIERO_VERSION: ${{ inputs.hieroVersion }}
         INSTALL_BLOCK_NODE: ${{ inputs.installBlockNode }}
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
         DUAL_MODE: ${{ inputs.dualMode }}
-      run: |
-        # Create a Kubernetes cluster using kind
-        kind create cluster -n ${SOLO_CLUSTER_NAME}
+        HAPROXY_PORT: ${{ inputs.haproxyPort }}
+        GRPC_PROXY_PORT: ${{ inputs.grpcProxyPort }}
+        DUAL_MODE_GRPC_PROXY_PORT: ${{ inputs.dualModeGrpcProxyPort }}
+      run: bash "${{ github.action_path }}/scripts/deploy-consensus-network.sh"
 
-        # Determine number of nodes based on dual mode
-        if [[ "${DUAL_MODE}" == "true" ]]; then
-          NUM_NODES=2
-          NODE_IDS="node1,node2"
-        else
-          NUM_NODES=1
-          NODE_IDS="node1"
-        fi
-
-        echo "Deploying ${NUM_NODES} consensus node(s)..."
-
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          echo "::debug::Using Solo CLI commands for version >= 0.44.0"
-          # Connect the Solo CLI to the kind cluster using a cluster reference name
-          solo cluster-ref config connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --debug
-          # Create deployment
-          solo deployment config create -n ${SOLO_NAMESPACE} --deployment ${SOLO_DEPLOYMENT} --debug
-
-          # Add the kind cluster to the deployment
-          solo deployment cluster attach --deployment ${SOLO_DEPLOYMENT} --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes ${NUM_NODES} --debug
-
-          # Generate node keys
-          solo keys consensus generate --gossip-keys --tls-keys -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --debug
-
-          # Setup the Solo cluster (shared components namespace)
-          solo cluster-ref config setup -s ${SOLO_CLUSTER_SETUP_NAMESPACE} --debug
-
-          # Optionally deploy a block node before the consensus network is deployed.
-          if [[ "${INSTALL_BLOCK_NODE}" == "true" ]]; then
-            solo block node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --consensus-node-version ${HIERO_VERSION} --debug
-          fi
-
-          # Deploy network
-          solo consensus network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --consensus-node-version ${HIERO_VERSION} --debug
-
-          # Setup and start nodes
-          solo consensus node setup -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --consensus-node-version ${HIERO_VERSION} --quiet-mode --debug
-          solo consensus node start -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --debug
-        else
-          echo "::debug::Using Solo CLI commands for version < 0.44.0"
-          # Versions before 0.44.0 rely on 'solo init' to create the ~/.solo cache directories
-          # (e.g. ~/.solo/cache/keys); later versions create them on demand and deprecated this command.
-          solo init --dev
-          solo cluster-ref connect --cluster-ref kind-${SOLO_CLUSTER_NAME} --context kind-${SOLO_CLUSTER_NAME} --dev
-          solo deployment create -n ${SOLO_NAMESPACE} --deployment ${SOLO_DEPLOYMENT} --dev
-          solo deployment add-cluster --deployment ${SOLO_DEPLOYMENT} --cluster-ref kind-${SOLO_CLUSTER_NAME} --num-consensus-nodes ${NUM_NODES} --dev
-          
-          # Generate node keys
-          solo node keys --gossip-keys --tls-keys -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --dev
-          
-          solo cluster-ref setup -s ${SOLO_CLUSTER_SETUP_NAMESPACE} --dev
-
-          # Optionally deploy a block node before the consensus network is deployed.
-          if [[ "${INSTALL_BLOCK_NODE}" == "true" ]]; then
-            solo block node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --dev
-          fi
-          
-          # Deploy network. Override the Quay MinIO tenant image; anonymous pulls were disabled.
-          solo network deploy -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --values-file "${{ github.action_path }}/minio-silo-values.yaml" --dev
-          
-          # Setup and start nodes
-          solo node setup -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --release-tag ${HIERO_VERSION} --quiet-mode --dev
-          solo node start -i ${NODE_IDS} --deployment ${SOLO_DEPLOYMENT} --dev
-        fi
-
-        # Debug: List services in the solo namespace
-        echo "Listing services in namespace ${SOLO_NAMESPACE}:"
-        kubectl get svc -n ${SOLO_NAMESPACE}
-
-        # Debug: Show current user
-        echo "Current user: $(whoami)"
-
-        # Add entries to /etc/hosts for easier access (requires sudo)
-        echo "Attempting to add entries to /etc/hosts..."
-        if sudo -n true 2>/dev/null; then
-          echo "127.0.0.1 network-node1-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
-          echo "127.0.0.1 envoy-proxy-node1-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
-          if [[ "${DUAL_MODE}" == "true" ]]; then
-            echo "127.0.0.1 network-node2-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
-            echo "127.0.0.1 envoy-proxy-node2-svc.${SOLO_NAMESPACE}.svc.cluster.local" | sudo tee -a /etc/hosts
-          fi
-          echo "Successfully added entries to /etc/hosts"
-        else
-          echo "⚠️  No sudo access available, skipping /etc/hosts update"
-          echo "Nodes can still be accessed via localhost:${{ inputs.haproxyPort }} and localhost:36211 (dual mode)"
-        fi
-
-        # Port forward HAProxy for node1 (only if service exists)
-        if kubectl get svc haproxy-node1-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/haproxy-node1-svc -n ${SOLO_NAMESPACE} ${{ inputs.haproxyPort }}:50211 &
-        else
-          echo "HAProxy service haproxy-node1-svc not found, skipping port-forward"
-        fi
-
-        # Port forward services for node2 if dual mode is enabled
-        if [[ "${DUAL_MODE}" == "true" ]]; then
-          # Port forward HAProxy for node2 (only if service exists)
-          if kubectl get svc haproxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-            kubectl port-forward svc/haproxy-node2-svc -n ${SOLO_NAMESPACE} 36211:50211 &
-            echo "HAProxy for node2 is accessible on port 36211"
-          else
-            echo "HAProxy service haproxy-node2-svc not found, skipping port-forward"
-          fi
-
-          # Port forward gRPC proxy for node2 (only if service exists)
-          if kubectl get svc envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-            kubectl port-forward svc/envoy-proxy-node2-svc -n ${SOLO_NAMESPACE} ${{ inputs.dualModeGrpcProxyPort }}:8080 &
-            echo "gRPC proxy for node2 is accessible on port ${{ inputs.dualModeGrpcProxyPort }}"
-          else
-            echo "gRPC proxy service envoy-proxy-node2-svc not found, skipping port-forward"
-          fi
-        fi
-
-        # Port forward gRPC proxy (only if service exists)
-        if kubectl get svc envoy-proxy-node1-svc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/envoy-proxy-node1-svc -n ${SOLO_NAMESPACE} ${{ inputs.grpcProxyPort }}:8080 &
-        else
-          echo "gRPC proxy service envoy-proxy-node1-svc not found, skipping port-forward"
-        fi
-
-    # Mirror node is required when installRelay is true (relay expects mirror-ingress-controller).
-    - name: Deploy MirrorNode
+    # The relay needs the mirror node's ingress controller, so installRelay implies a mirror node.
+    - name: Deploy mirror node
       if: ${{ inputs.installMirrorNode == 'true' || inputs.installRelay == 'true' }} # see https://github.com/actions/runner/issues/2238
       shell: bash
       env:
-        SOLO_NAMESPACE: solo
-        SOLO_DEPLOYMENT: solo-deployment
-        SOLO_CLUSTER_NAME: solo-e2e
-        MIRROR_NODE_VERSION: ${{ steps.component-versions.outputs.mirror-node-version }}
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-        # Relay requires mirror-ingress-controller; --enable-ingress installs it.
+        MIRROR_NODE_VERSION: ${{ inputs.mirrorNodeVersion }}
         ENABLE_INGRESS: ${{ inputs.installRelay == 'true' }}
-      run: |
-        ENABLE_INGRESS_FLAG=""
-        if [[ "${ENABLE_INGRESS}" == "true" ]]; then
-          ENABLE_INGRESS_FLAG="--enable-ingress"
-        fi
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo mirror node add --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger ${ENABLE_INGRESS_FLAG} --debug
-        else
-          solo mirror-node deploy --cluster-ref kind-${SOLO_CLUSTER_NAME} --deployment ${SOLO_DEPLOYMENT} --mirror-node-version ${MIRROR_NODE_VERSION} --pinger ${ENABLE_INGRESS_FLAG} --dev
-        fi
+        MIRROR_NODE_PORT_REST: ${{ inputs.mirrorNodePortRest }}
+        MIRROR_NODE_PORT_GRPC: ${{ inputs.mirrorNodePortGrpc }}
+        MIRROR_NODE_PORT_WEB3_REST: ${{ inputs.mirrorNodePortWeb3Rest }}
+        JAVA_REST_API_PORT: ${{ inputs.javaRestApiPort }}
+      run: bash "${{ github.action_path }}/scripts/deploy-mirror-node.sh"
 
-        # Debug: List services in the solo namespace
-        echo "Listing services in namespace ${SOLO_NAMESPACE}:"
-        kubectl get svc -n ${SOLO_NAMESPACE}
-
-        # Solo >= 0.44 names the mirror node Helm release "mirror-<id>" (so "mirror-1"), while
-        # Solo < 0.44 uses the flat legacy name "mirror". Probing beats branching on SOLO_GE_0440
-        # here, because Solo keeps honouring the legacy name for deployments created earlier.
-        MIRROR_RELEASE_NAME=""
-        for candidate in mirror-1 mirror; do
-          if kubectl get svc "${candidate}-rest" -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-            MIRROR_RELEASE_NAME="${candidate}"
-            break
-          fi
-        done
-        if [[ -z "${MIRROR_RELEASE_NAME}" ]]; then
-          echo "::error::Mirror node deploy reported success but no mirror REST service was found (tried mirror-1-rest, mirror-rest)."
-          exit 1
-        fi
-        echo "Using mirror node release name: ${MIRROR_RELEASE_NAME}"
-
-        # Port forward mirror node REST API (only if service exists)
-        if kubectl get svc ${MIRROR_RELEASE_NAME}-rest -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/${MIRROR_RELEASE_NAME}-rest -n ${SOLO_NAMESPACE} ${{ inputs.mirrorNodePortRest }}:80 &
-        else
-          echo "Mirror node service ${MIRROR_RELEASE_NAME}-rest not found, skipping port-forward"
-        fi
-        # Port forward mirror node gRPC (only if service exists)
-        if kubectl get svc ${MIRROR_RELEASE_NAME}-grpc -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/${MIRROR_RELEASE_NAME}-grpc -n ${SOLO_NAMESPACE} ${{ inputs.mirrorNodePortGrpc }}:5600 &
-        else
-          echo "Mirror node service ${MIRROR_RELEASE_NAME}-grpc not found, skipping port-forward"
-        fi
-        # Port forward mirror node web3 (only if service exists)
-        if kubectl get svc ${MIRROR_RELEASE_NAME}-web3 -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/${MIRROR_RELEASE_NAME}-web3 -n ${SOLO_NAMESPACE} ${{ inputs.mirrorNodePortWeb3Rest }}:80 &
-        else
-          echo "Mirror node service ${MIRROR_RELEASE_NAME}-web3 not found, skipping port-forward"
-        fi
-        # Port forward Java REST API (only if service exists)
-        if kubectl get svc ${MIRROR_RELEASE_NAME}-restjava -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          kubectl port-forward svc/${MIRROR_RELEASE_NAME}-restjava -n ${SOLO_NAMESPACE} ${{ inputs.javaRestApiPort }}:80 &
-        else
-          echo "Java REST API service ${MIRROR_RELEASE_NAME}-restjava not found, skipping port-forward"
-        fi
-
-    - name: Deploy JSON-RPC-Relay
+    - name: Deploy JSON-RPC relay
       if: ${{ inputs.installRelay == 'true' }}
       shell: bash
       env:
-        SOLO_NAMESPACE: solo
-        SOLO_DEPLOYMENT: solo-deployment
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-      run: |
-        RELAY_VALUES_FILE="${GITHUB_WORKSPACE}/relay-low-resources.yaml"
-        RELAY_VALUES_FLAG=""
-        if [[ -f "${RELAY_VALUES_FILE}" ]]; then
-          RELAY_VALUES_FLAG="--values-file ${RELAY_VALUES_FILE}"
-        fi
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo relay node add -i node1 --deployment ${SOLO_DEPLOYMENT} --debug ${RELAY_VALUES_FLAG}
-        else
-          solo relay deploy -i node1 --deployment ${SOLO_DEPLOYMENT} --dev ${RELAY_VALUES_FLAG}
-        fi
-        echo "JSON-RPC-Relay installed successfully"
+        RELAY_PORT: ${{ inputs.relayPort }}
+      run: bash "${{ github.action_path }}/scripts/deploy-json-rpc-relay.sh"
 
-        # Debug: List services in the solo namespace
-        echo "Listing services in namespace ${SOLO_NAMESPACE}:"
-        kubectl get svc -n ${SOLO_NAMESPACE}
-
-        # The relay Service name follows the Helm release name, which Solo derives differently per
-        # version: "relay-1" on Solo >= 0.44 (release "relay" + component id) versus
-        # "relay-node1-hedera-json-rpc-relay" on Solo < 0.44 (release "relay-node1" + chart name).
-        # Look it up by the same label Solo itself uses, which also keeps the separate "-ws"
-        # websocket Service (app.kubernetes.io/name=ws) out of the match.
-        RELAY_SVC=$(kubectl get svc -n ${SOLO_NAMESPACE} -l app.kubernetes.io/name=relay -o name | head -n1)
-        if [[ -z "${RELAY_SVC}" ]] && kubectl get svc relay-node1-hedera-json-rpc-relay -n ${SOLO_NAMESPACE} >/dev/null 2>&1; then
-          RELAY_SVC="svc/relay-node1-hedera-json-rpc-relay"
-        fi
-        if [[ -z "${RELAY_SVC}" ]]; then
-          echo "::error::JSON-RPC-Relay deploy reported success but no relay Service was found (label app.kubernetes.io/name=relay, or relay-node1-hedera-json-rpc-relay)."
-          kubectl get svc -n ${SOLO_NAMESPACE}
-          exit 1
-        fi
-        echo "Using relay Service: ${RELAY_SVC}"
-        kubectl port-forward "${RELAY_SVC}" -n ${SOLO_NAMESPACE} ${{ inputs.relayPort }}:7546 &
-
-    - name: Create ECDSA Account
+    - name: Create ECDSA account
       id: create-ecdsa
       shell: bash
       env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-        SOLO_NAMESPACE: solo
-        SOLO_DEPLOYMENT: solo-deployment
         HBAR_AMOUNT: ${{ inputs.hbarAmount || 10000000 }}
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-      run: |
-        echo "Creating ECDSA account..."
+      run: bash "${{ github.action_path }}/scripts/create-funded-account.sh" ecdsa
 
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo ledger account create --generate-ecdsa-key --deployment ${SOLO_DEPLOYMENT} --debug > account_create_output_ecdsa.txt
-        else
-          solo account create --generate-ecdsa-key --deployment ${SOLO_DEPLOYMENT} --dev > account_create_output_ecdsa.txt
-        fi
-
-        cat account_create_output_ecdsa.txt
-        JSON=$(cat account_create_output_ecdsa.txt | python3 ${GITHUB_ACTION_PATH}/extractAccountAsJson.py) || {
-          echo "Error: Python script extractAccountAsJson.py failed"
-          exit 1
-        }
-
-        export ACCOUNT_ID=$(echo ${JSON} | jq -r '.accountId')
-        export ACCOUNT_PUBLIC_KEY=$(echo ${JSON} | jq -r '.publicKey')
-        export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-${ACCOUNT_ID} -n ${SOLO_NAMESPACE} -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo ledger account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}" --debug
-        else
-          solo account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}" --dev
-        fi
-
-        echo "accountId=${ACCOUNT_ID}"
-        echo "publicKey=${ACCOUNT_PUBLIC_KEY}"
-        echo "privateKey=${ACCOUNT_PRIVATE_KEY}"
-        echo "accountId=${ACCOUNT_ID}" >> ${GITHUB_OUTPUT}
-        echo "publicKey=${ACCOUNT_PUBLIC_KEY}" >> ${GITHUB_OUTPUT}
-        echo "privateKey=${ACCOUNT_PRIVATE_KEY}" >> ${GITHUB_OUTPUT}
-
-    - name: Create ED25519 Account
+    - name: Create ED25519 account
       id: create-ed25519
       shell: bash
       env:
-        GITHUB_ACTION_PATH: ${{ github.action_path }}
-        SOLO_NAMESPACE: solo
-        SOLO_DEPLOYMENT: solo-deployment
         HBAR_AMOUNT: ${{ inputs.hbarAmount || 10000000 }}
-        SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
-      run: |
-        echo "Creating ED25519 account..."
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo ledger account create --deployment ${SOLO_DEPLOYMENT} --debug > account_create_output_ed25519.txt
-        else
-          solo account create --deployment ${SOLO_DEPLOYMENT} --dev > account_create_output_ed25519.txt
-        fi
-
-        cat account_create_output_ed25519.txt
-        JSON=$(cat account_create_output_ed25519.txt | python3 ${GITHUB_ACTION_PATH}/extractAccountAsJson.py) || {
-          echo "Error: Python script extractAccountAsJson.py failed"
-          exit 1
-        }
-
-        export ACCOUNT_ID=$(echo ${JSON} | jq -r '.accountId')
-        export ACCOUNT_PUBLIC_KEY=$(echo ${JSON} | jq -r '.publicKey')
-        export ACCOUNT_PRIVATE_KEY=$(kubectl get secret account-key-${ACCOUNT_ID} -n ${SOLO_NAMESPACE} -o jsonpath='{.data.privateKey}' | base64 -d | xargs)
-
-        ED25519_DER_PREFIX="302e020100300506032b657004220420"
-        export ACCOUNT_PRIVATE_KEY_RAW="${ACCOUNT_PRIVATE_KEY#${ED25519_DER_PREFIX}}"
-        if [[ ${#ACCOUNT_PRIVATE_KEY_RAW} -ne 64 ]]; then
-          echo "Error: Failed to derive raw ED25519 private key from DER format"
-          exit 1
-        fi
-
-        if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          solo ledger account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}" --debug
-        else
-          solo account update --account-id "${ACCOUNT_ID}" --hbar-amount "${HBAR_AMOUNT}" --deployment "${SOLO_DEPLOYMENT}" --dev
-        fi
-
-        echo "accountId=${ACCOUNT_ID}"
-        echo "publicKey=${ACCOUNT_PUBLIC_KEY}"
-        echo "privateKey=${ACCOUNT_PRIVATE_KEY}"
-        echo "privateKeyRaw=${ACCOUNT_PRIVATE_KEY_RAW}"
-        echo "accountId=${ACCOUNT_ID}" >> ${GITHUB_OUTPUT}
-        echo "publicKey=${ACCOUNT_PUBLIC_KEY}" >> ${GITHUB_OUTPUT}
-        echo "privateKey=${ACCOUNT_PRIVATE_KEY}" >> ${GITHUB_OUTPUT}
-        echo "privateKeyRaw=${ACCOUNT_PRIVATE_KEY_RAW}" >> ${GITHUB_OUTPUT}
+      run: bash "${{ github.action_path }}/scripts/create-funded-account.sh" ed25519
 
 # Ref: https://haya14busa.github.io/github-action-brandings/
 branding:

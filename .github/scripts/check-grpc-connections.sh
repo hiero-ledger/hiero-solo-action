@@ -42,10 +42,10 @@ test_grpc_connection() {
         # Only test gRPC reflection for Mirror Node gRPC (port 5600) which supports it
         if [ "$port" = "5600" ]; then
             # Try to list services (this is a common gRPC reflection endpoint)
-            if timeout 10 grpcurl -plaintext localhost:$port list >/dev/null 2>&1; then
+            if timeout 10 grpcurl -plaintext "localhost:${port}" list >/dev/null 2>&1; then
                 echo "✅ gRPC connection to $service_name successful"
                 echo "Available services:"
-                timeout 10 grpcurl -plaintext localhost:$port list
+                timeout 10 grpcurl -plaintext "localhost:${port}" list
                 return 0
             else
                 echo "⚠️  gRPC reflection not available, but port is listening"

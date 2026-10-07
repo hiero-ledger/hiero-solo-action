@@ -6,13 +6,27 @@ on:
   pull_request:
     branches:
       - main
-    # ready_for_review is not in the default type list; without it, un-drafting a PR fires no
-    # event and the checks below would never start.
-    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
+  lint-scripts:
+    runs-on: hl-hsa-lin-md
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 🔍 ShellCheck
+        run: |
+          if ! command -v shellcheck >/dev/null; then
+            sudo apt-get update -q && sudo apt-get install -y -q shellcheck
+          fi
+          shellcheck scripts/*.sh scripts/lib/*.sh .github/scripts/*.sh
+
   validate-outputs:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -39,48 +53,9 @@ jobs:
           ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
           ED25519_PRIVATE_KEY_RAW: ${{ steps.solo.outputs.ed25519PrivateKeyRaw }}
           ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
-        run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
-
-  validate-outputs-pre-0440:
-    if: ${{ !github.event.pull_request.draft }}
-    runs-on: hl-hsa-lin-md
-    steps:
-      - name: Harden the runner (Audit all outbound calls)
-        uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
-        with:
-          egress-policy: audit
-
-      - name: 🚀 Checkout Repo
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: ⚙️ Setup Hiero Solo
-        id: solo
-        uses: ./
-        with:
-          # hieroVersion and mirrorNodeVersion are deliberately left unset: this job also covers the
-          # action resolving them to the versions the pinned Solo release supports.
-          soloVersion: '0.43.2'
-          # Solo < 0.44 is the only place the legacy "mirror" Helm release name is exercised
-          # (Solo >= 0.44 uses "mirror-1", covered by validate-mirror-node), so keep the mirror
-          # node installed here to guard the fallback in the action's release-name lookup.
-          installMirrorNode: true
-
-      - name: ✅ Validate Hiero Solo Outputs
-        env:
-          ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
-          PRIVATE_KEY: ${{ steps.solo.outputs.privateKey }}
-          PUBLIC_KEY: ${{ steps.solo.outputs.publicKey }}
-          ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
-          ECDSA_PRIVATE_KEY: ${{ steps.solo.outputs.ecdsaPrivateKey }}
-          ECDSA_PUBLIC_KEY: ${{ steps.solo.outputs.ecdsaPublicKey }}
-          ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
-          ED25519_PRIVATE_KEY: ${{ steps.solo.outputs.ed25519PrivateKey }}
-          ED25519_PRIVATE_KEY_RAW: ${{ steps.solo.outputs.ed25519PrivateKeyRaw }}
-          ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
-        run: ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
+        run: ${GITHUB_WORKSPACE}/.github/scripts/check-accounts.sh
 
   validate-hbar-amount:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -100,10 +75,17 @@ jobs:
       - name: ✅ Validate Solo Account HBAR Amount
         env:
           ACCOUNT_ID: ${{ steps.solo.outputs.accountId }}
-        run: solo ledger account info --account-id "${ACCOUNT_ID}" --deployment "solo-deployment"
+          EXPECTED_BALANCE: '100000001'
+        run: |
+          solo ledger account info --account-id "${ACCOUNT_ID}" --deployment "solo-deployment" | tee account_info.txt
+          BALANCE=$(python3 "${GITHUB_WORKSPACE}/extractAccountAsJson.py" < account_info.txt | jq -r '.balance')
+          if [ "${BALANCE}" != "${EXPECTED_BALANCE}" ]; then
+            echo "❌ Error: account ${ACCOUNT_ID} holds ${BALANCE} HBAR, expected ${EXPECTED_BALANCE}"
+            exit 1
+          fi
+          echo "✅ Account ${ACCOUNT_ID} holds ${BALANCE} HBAR"
 
   validate-block-node:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -145,7 +127,6 @@ jobs:
           kubectl wait -n solo --for=condition=Ready "${BLOCK_NODE_POD}" --timeout=300s
 
   validate-mirror-node:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -186,8 +167,8 @@ jobs:
           # dead without releasing its listening socket). Use a different local port so we always
           # get a fresh, known-good tunnel instead of racing/reusing that one.
           MIRROR_RESTJAVA_LOCAL_PORT=18084
-          # Same label the readiness wait above uses, so the Service is found whatever Solo named
-          # the mirror release (mirror-1-restjava on Solo >= 0.44, mirror-restjava before it).
+          # Same label the readiness wait above uses, so the Service is found without depending on
+          # the mirror release name Solo chose.
           RESTJAVA_SVC=$(kubectl get svc -n solo -l app.kubernetes.io/name=restjava -o name | head -n1)
           if [ -z "${RESTJAVA_SVC}" ]; then
             echo "❌ Error: mirror node restjava service not found (label app.kubernetes.io/name=restjava)"
@@ -224,7 +205,6 @@ jobs:
           fi
 
   validate-json-rpc-relay:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -254,7 +234,7 @@ jobs:
           ED25519_PRIVATE_KEY_RAW: ${{ steps.solo.outputs.ed25519PrivateKeyRaw }}
           ED25519_PUBLIC_KEY: ${{ steps.solo.outputs.ed25519PublicKey }}
         run: |
-          ${GITHUB_WORKSPACE}/scripts/check-accounts.sh
+          ${GITHUB_WORKSPACE}/.github/scripts/check-accounts.sh
 
           # Log Account details for Generic (ED25519), ECDSA, and ED25519
           echo "Generic Account ID (ED25519): ${{ steps.solo.outputs.accountId }}"
@@ -268,8 +248,7 @@ jobs:
           echo "ED25519 Private Key: ${{ steps.solo.outputs.ed25519PrivateKey }}"
           echo "ED25519 Public Key: ${{ steps.solo.outputs.ed25519PublicKey }}"
 
-          # Look the Service up by the label Solo sets, which covers every Solo/chart version
-          # (relay-1, relay-node1-hedera-json-rpc-relay, ...) and skips the "-ws" websocket Service.
+          # Look the Service up by the label Solo sets, which skips the "-ws" websocket Service.
           RELAY_SVC=$(kubectl get svc -n solo -l app.kubernetes.io/name=relay -o name | head -n1)
           if [ -z "${RELAY_SVC}" ]; then
             echo "❌ Error: JSON-RPC relay service not found (label app.kubernetes.io/name=relay)"
@@ -318,7 +297,6 @@ jobs:
           cat response.json
 
   validate-grpc-connections:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -344,11 +322,10 @@ jobs:
         env:
           INSTALL_MIRROR_NODE: false
         run: |
-          chmod +x ${GITHUB_WORKSPACE}/scripts/check-grpc-connections.sh
-          bash ${GITHUB_WORKSPACE}/scripts/check-grpc-connections.sh
+          chmod +x ${GITHUB_WORKSPACE}/.github/scripts/check-grpc-connections.sh
+          bash ${GITHUB_WORKSPACE}/.github/scripts/check-grpc-connections.sh
 
   validate-grpc-connections-with-mirror:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -376,5 +353,5 @@ jobs:
         env:
           INSTALL_MIRROR_NODE: true
         run: |
-          chmod +x ${GITHUB_WORKSPACE}/scripts/check-grpc-connections.sh
-          bash ${GITHUB_WORKSPACE}/scripts/check-grpc-connections.sh
+          chmod +x ${GITHUB_WORKSPACE}/.github/scripts/check-grpc-connections.sh
+          bash ${GITHUB_WORKSPACE}/.github/scripts/check-grpc-connections.sh
