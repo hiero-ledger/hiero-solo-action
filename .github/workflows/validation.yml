@@ -6,13 +6,9 @@ on:
   pull_request:
     branches:
       - main
-    # ready_for_review is not in the default type list; without it, un-drafting a PR fires no
-    # event and the checks below would never start.
-    types: [opened, synchronize, reopened, ready_for_review]
 
 jobs:
   lint-scripts:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -31,7 +27,6 @@ jobs:
           shellcheck scripts/*.sh scripts/lib/*.sh .github/scripts/*.sh
 
   validate-outputs:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -61,7 +56,6 @@ jobs:
         run: ${GITHUB_WORKSPACE}/.github/scripts/check-accounts.sh
 
   validate-hbar-amount:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -92,7 +86,6 @@ jobs:
           echo "✅ Account ${ACCOUNT_ID} holds ${BALANCE} HBAR"
 
   validate-block-node:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -134,7 +127,6 @@ jobs:
           kubectl wait -n solo --for=condition=Ready "${BLOCK_NODE_POD}" --timeout=300s
 
   validate-mirror-node:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -213,7 +205,6 @@ jobs:
           fi
 
   validate-json-rpc-relay:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -306,7 +297,6 @@ jobs:
           cat response.json
 
   validate-grpc-connections:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
@@ -336,7 +326,6 @@ jobs:
           bash ${GITHUB_WORKSPACE}/.github/scripts/check-grpc-connections.sh
 
   validate-grpc-connections-with-mirror:
-    if: ${{ !github.event.pull_request.draft }}
     runs-on: ubuntu-latest
     steps:
       - name: Harden the runner (Audit all outbound calls)
