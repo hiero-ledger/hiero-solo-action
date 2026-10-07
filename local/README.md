@@ -38,7 +38,7 @@ An overview of all args variable:
 |-----------------|----------|----------------------------------------------------------------------------|
 | DOCKER_VERSION  |   28.3.2 | Version of the used `docker`                                               |
 | HELM_VERSION    |   3.14.2 | Version of the used `helm`                                                 |
-| HIERO_VERSION   |   0.75.1 | Version of the used Hiero consensus node                                   |
+| HIERO_VERSION   |  v0.76.4 | Version of the used Hiero consensus node                                   |
 | KIND_VERSION    |   0.29.0 | Version of the used `kind` (Note: It is not the version of the KIND node ) |
 | KUBECTL_VERSION |   1.32.2 | Version of the used `kubectl`                                              |
 

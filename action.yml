@@ -225,8 +225,9 @@ runs:
         SOLO_GE_0440: ${{ steps.check-solo-version.outputs.solo-ge-0440 }}
       run: |
         set -euo pipefail
+        # Must match the versions pinned by the default soloVersion; see "Bumping the Solo Version" in MAINTAINERS.md.
         if [[ "${SOLO_GE_0440}" == "true" ]]; then
-          SOLO_MATCHED_HIERO_VERSION="v0.75.1"
+          SOLO_MATCHED_HIERO_VERSION="v0.76.4"
           SOLO_MATCHED_MIRROR_NODE_VERSION="v0.161.0"
         else
           SOLO_MATCHED_HIERO_VERSION="v0.65.1"
