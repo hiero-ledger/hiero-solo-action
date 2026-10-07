@@ -43,5 +43,17 @@ if [ -z "$ED25519_PUBLIC_KEY" ]; then
     echo "❌ Error: ED25519 publicKey is missing!"
     exit 1
 fi
+if [ -z "$ED25519_PRIVATE_KEY_RAW" ]; then
+    echo "❌ Error: ED25519 privateKeyRaw is missing!"
+    exit 1
+fi
+if [ ${#ED25519_PRIVATE_KEY_RAW} -ne 64 ]; then
+    echo "❌ Error: ED25519 privateKeyRaw must be 64 hex characters!"
+    exit 1
+fi
+if [ "${ED25519_PRIVATE_KEY: -64}" != "$ED25519_PRIVATE_KEY_RAW" ]; then
+    echo "❌ Error: ED25519 privateKeyRaw does not match the DER private key!"
+    exit 1
+fi
 
 echo "🎉 All outputs are valid!"
