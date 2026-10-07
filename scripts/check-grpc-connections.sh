@@ -4,15 +4,8 @@ set -e
 
 echo "🔍 Validating gRPC connections..."
 
-# Wait a bit for port forwarding to establish
-echo "⏳ Waiting for port forwarding to establish..."
-sleep 10
-
-# Debug: Show what's listening on the expected ports
-echo "🔍 Debug: Checking what's listening on expected ports..."
-netstat -tlnp 2>/dev/null | grep -E ":(9998|5600|35211)" || echo "No services found on expected ports yet"
-
-# Function to check if a port is listening
+# Function to check if a port is listening. Uses bash's built-in /dev/tcp so the check
+# does not depend on extra tooling such as nc or netstat being installed on the runner.
 check_port() {
     local port=$1
     local service_name=$2
@@ -22,7 +15,8 @@ check_port() {
     echo "Checking $service_name on port $port..."
 
     while [ $count -lt $timeout ]; do
-        if nc -z localhost $port 2>/dev/null; then
+        if (exec 3<>"/dev/tcp/localhost/${port}") 2>/dev/null; then
+            exec 3<&- 3>&-
             echo "✅ $service_name is listening on port $port"
             return 0
         fi
@@ -110,7 +104,3 @@ if [ "${INSTALL_MIRROR_NODE}" = "true" ]; then
 else
     echo "ℹ️  Mirror Node gRPC (port 5600): Not installed"
 fi
-
-# Final debug: Show all listening ports
-echo "🔍 Final debug: All listening ports:"
-netstat -tlnp 2>/dev/null | grep LISTEN || echo "No listening ports found"
