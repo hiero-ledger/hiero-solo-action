@@ -20,12 +20,12 @@ An overview of the usage and idea of the action can be found in the [CI for Hede
 
 The network that is created by the action contains one consensus node that can be accessed at `localhost:35211` (Solo 0.63+ default local port).
 Optionally, you can deploy a second consensus node by enabling `dualMode: true`. When dual mode is enabled, the second node is accessible at `localhost:36211`.
-You can optionally provision a block node by enabling `installBlockNode: true`. The action reuses `hieroVersion` as the Solo block node `--release-tag`.
+You can optionally provision a block node by enabling `installBlockNode: true`. The block node version is the one the selected Solo release ships with.
 When a mirror node is installed, the Java-based REST API can be accessed at `localhost:8084`.
-The action creates an account on the network that contains 10,000,000 hbars.
-All information about the account is stored as output to the github action.
+The action creates an ED25519 and an ECDSA account on the network, each funded with 10,000,000 hbars (see `hbarAmount`).
+All information about the accounts is stored as output to the github action.
 
-A good example on how the action is used can be found at the [hiero-enterprise project action](<[https://github.com/OpenElements/hedera-enterprise/blob/main/.github/workflows/maven.yml](https://github.com/OpenElements/hiero-enterprise-java/blob/main/.github/workflows/maven.yml)>). Here the action is used to create a temporary network that is than used to execute tests against the network.
+A good example on how the action is used can be found at the [hiero-enterprise project action](https://github.com/OpenElements/hiero-enterprise-java/blob/main/.github/workflows/maven.yml). Here the action is used to create a temporary network that is then used to execute tests against the network.
 
 ## Inputs
 
@@ -34,9 +34,9 @@ The GitHub action takes the following inputs:
 | Input                    | Required | Default    | Description                                                                                                                                          |
 | ------------------------ | -------- | ---------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `hbarAmount`             | false    | `10000000` | Amount of hbars to fund a created account with.                                                                                                      |
-| `hieroVersion`           | false    | _(auto)_   | Hiero consensus node version to use. Left empty, it resolves to the version the selected `soloVersion` supports. When `installBlockNode` is enabled, this same value is passed to Solo as the block node release tag. |
-| `installBlockNode`       | false    | `false`    | If set to `true`, the action provisions a block node before consensus node deployment. No separate block-node version input is exposed.              |
-| `mirrorNodeVersion`      | false    | _(auto)_   | Mirror node version to use. Left empty, it resolves to the version the selected `soloVersion` supports.                                              |
+| `hieroVersion`           | false    | _(auto)_   | Hiero consensus node version to use. Left empty, the version pinned by the selected `soloVersion` is used. When `installBlockNode` is enabled, Solo checks this version against the block node's block proof format. |
+| `installBlockNode`       | false    | `false`    | If set to `true`, the action provisions a block node before consensus node deployment. The block node version is the one pinned by `soloVersion`.    |
+| `mirrorNodeVersion`      | false    | _(auto)_   | Mirror node version to use. Left empty, the version pinned by the selected `soloVersion` is used.                                                     |
 | `installMirrorNode`      | false    | `false`    | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node REST API can be accessed at `localhost:38081`. |
 | `mirrorNodePortRest`     | false    | `38081`    | Port for Mirror Node REST API                                                                                                                        |
 | `mirrorNodePortGrpc`     | false    | `5600`     | Port for Mirror Node gRPC                                                                                                                            |
@@ -46,42 +46,39 @@ The GitHub action takes the following inputs:
 | `grpcProxyPort`          | false    | `9998`     | Port for gRPC Proxy                                                                                                                                  |
 | `dualModeGrpcProxyPort`  | false    | `9999`     | Port for the gRPC Proxy of the second consensus node (only if dual mode is enabled)                                                                  |
 | `haproxyPort`            | false    | `35211`    | Port for HAProxy (consensus node gRPC)                                                                                                               |
-| `soloVersion`            | false    | `0.88.1`   | Version of Solo CLI to install                                                                                                                       |
+| `soloVersion`            | false    | `0.91.0`   | Version of Solo CLI to install. Must be 0.44.0 or higher.                                                                                            |
 | `javaRestApiPort`        | false    | `8084`     | Port for Java-based REST API                                                                                                                         |
 | `nodeVersion`            | false    | `24`       | Node.js version to use for Solo CLI installation. Must be 22 or higher.                                                                              |
 | `dualMode`               | false    | `false`    | Enable dual mode to deploy two consensus nodes                                                                                                       |
 
 > [!IMPORTANT]
-> `hieroVersion` and `mirrorNodeVersion` are resolved from `soloVersion` when you leave them unset, so the
-> default combination is always one that the selected Solo CLI supports. Override them only if you need a
-> specific component version, and check the compatibility table below first.
-> When `installBlockNode` is enabled, the same `hieroVersion` value is also used for `solo block node add --release-tag`.
+> When you leave `hieroVersion` and `mirrorNodeVersion` unset, the action does not pass a version to Solo,
+> so the selected `soloVersion` deploys the component versions it was built and tested against. Override them
+> only if you need a specific component version, and check the compatibility notes below first.
 
 ### Component versions per Solo release
 
 Each Solo release pins the component versions it was built and tested against, together with the
-`solo-deployment` Helm chart it bundles. The action mirrors those pins:
+`solo-deployment` Helm chart it bundles. Some examples:
 
-| `soloVersion` | Consensus node (`hieroVersion`) | Mirror node (`mirrorNodeVersion`) |
-| ------------- | ------------------------------- | --------------------------------- |
-| `>= 0.44.0`   | `v0.75.1`                       | `v0.161.0`                        |
-| `< 0.44.0`    | `v0.65.1`                       | `v0.138.0`                        |
+| `soloVersion` | Consensus node | Mirror node | Block node |
+| ------------- | -------------- | ----------- | ---------- |
+| `0.92.0`      | `v0.77.2`      | `v0.163.0`  | `0.43.0`   |
+| `0.91.0`      | `v0.76.4`      | `v0.161.0`  | `0.40.1`   |
+| `0.88.1`      | `v0.75.1`      | `v0.161.0`  | `0.40.1`   |
 
-### Running Solo older than 0.44
+When `installBlockNode` is enabled together with an explicit `hieroVersion`, both must use the same block
+proof format: block node `0.41.0` and newer require consensus node `v0.77.0` or newer, and older block nodes
+require an older consensus node. Solo rejects mismatched combinations before deploying.
 
-Solo renamed its npm package (`@hashgraph/solo` -> `@hiero-ledger/solo`) and reworked its CLI syntax in
-0.44.0; the action detects the pinned version and uses the matching package and commands automatically.
-What it cannot work around is the older bundled chart, so these ceilings apply:
+### Running Solo older than 0.91
 
-| Component      | Highest version usable with Solo `< 0.44` | Why                                                                                                                                             |
-| -------------- | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Consensus node | `v0.72.1`                                  | Solo `< 0.44` bundles `solo-deployment` chart `0.54.x`, whose node image only provides a **Java 21** runtime. Consensus node `v0.73.0` and newer are compiled for **Java 25**. |
-| Mirror node    | `v0.138.0`                                 | The version Solo `0.43.x` pins and renders its chart values for. Solo `>= 0.44` added handling for newer mirror node charts (e.g. the `0.152.0` and `0.155.0` value changes) that `0.43.x` knows nothing about. |
+Solo releases before 0.91.0 deploy the MinIO tenant from `quay.io/minio/minio`, which no longer allows
+anonymous pulls. For those releases the action overrides the tenant image with the same
+[Silo](https://github.com/pgsty/silo) image that Solo 0.91.0 uses (see `values/minio-silo-values.yaml`).
 
-Exceeding the consensus node ceiling does not fail fast: the node crashes on startup with
-`java.lang.UnsupportedClassVersionError` and `solo node start` simply hangs on
-`Check all nodes are ACTIVE` until it times out. The action emits a `::warning::` when it detects this
-combination.
+The `hieroVersion` input is passed as `--consensus-node-version` on Solo 0.75.0 and newer, and as the
+older `--release-tag` flag before that.
 
 ## Outputs
 
@@ -103,7 +100,7 @@ combination.
 
 ```yaml
 - name: Setup Hiero Solo
-  uses: hiero-ledger/hiero-solo-action@v0.8
+  uses: hiero-ledger/hiero-solo-action@v0.25.0
   id: solo
 
 - name: Use Hiero Solo
@@ -117,7 +114,7 @@ combination.
 
 ```yaml
 - name: Setup Hiero Solo
-  uses: hiero-ledger/hiero-solo-action@v0.8
+  uses: hiero-ledger/hiero-solo-action@v0.25.0
   id: solo
 
 - name: Use Hiero Solo
@@ -131,7 +128,7 @@ combination.
 
 ```yaml
 - name: Setup Hiero Solo
-  uses: hiero-ledger/hiero-solo-action@v0.8
+  uses: hiero-ledger/hiero-solo-action@v0.25.0
   id: solo
 
 - name: Use Hiero Solo
@@ -146,7 +143,7 @@ combination.
 
 ```yaml
 - name: Setup Hiero Solo
-  uses: hiero-ledger/hiero-solo-action@v0.8
+  uses: hiero-ledger/hiero-solo-action@v0.25.0
   id: solo
   with:
     hbarAmount: 10000000
@@ -155,19 +152,19 @@ combination.
   run: |
     echo "Account ID: ${{ steps.solo.outputs.accountId }}"
     # Display account information including the current amount of HBAR
-    solo account get --account-id ${{ steps.solo.outputs.accountId }} --deployment "solo-deployment"
+    solo ledger account info --account-id ${{ steps.solo.outputs.accountId }} --deployment "${{ steps.solo.outputs.deployment }}"
 ```
 
 ## Usage with Block Node
 
-Use `installBlockNode: true` to provision a block node. The action reuses the existing `hieroVersion` input for the block node release tag, so no additional block-node version input is needed.
+Use `installBlockNode: true` to provision a block node. The block node and consensus node versions pinned by
+`soloVersion` are compatible with each other, so no additional version input is needed.
 
 ```yaml
 - name: Setup Hiero Solo with Block Node
-  uses: hiero-ledger/hiero-solo-action@v0.8
+  uses: hiero-ledger/hiero-solo-action@v0.25.0
   id: solo
   with:
-    hieroVersion: v0.73.0
     installBlockNode: true
 ```
 
@@ -175,7 +172,7 @@ Use `installBlockNode: true` to provision a block node. The action reuses the ex
 
 ```yaml
 - name: Setup Hiero Solo with Dual Mode
-  uses: hiero-ledger/hiero-solo-action@v0.8
+  uses: hiero-ledger/hiero-solo-action@v0.25.0
   id: solo
   with:
     dualMode: true
@@ -189,10 +186,6 @@ Use `installBlockNode: true` to provision a block node. The action reuses the ex
     echo "Node 2 is accessible at localhost:36211"
     echo "Account ID: ${{ steps.solo.outputs.accountId }}"
 ```
-
-## Local Solo Test Network
-
-The [README.md](./local/README.md) describes how to set up a local solo test network only with Docker.
 
 ## Security Testing
 
