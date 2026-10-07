@@ -46,7 +46,7 @@ The GitHub action takes the following inputs:
 | `grpcProxyPort`          | false    | `9998`     | Port for gRPC Proxy                                                                                                                                  |
 | `dualModeGrpcProxyPort`  | false    | `9999`     | Port for the gRPC Proxy of the second consensus node (only if dual mode is enabled)                                                                  |
 | `haproxyPort`            | false    | `35211`    | Port for HAProxy (consensus node gRPC)                                                                                                               |
-| `soloVersion`            | false    | `0.92.0`   | Version of Solo CLI to install. Must be 0.44.0 or higher.                                                                                            |
+| `soloVersion`            | false    | `0.92.0`   | Version of Solo CLI to install. Must be 0.44.0 or higher; see [Running Solo older than 0.44](#running-solo-older-than-044).                          |
 | `javaRestApiPort`        | false    | `8084`     | Port for Java-based REST API                                                                                                                         |
 | `nodeVersion`            | false    | `24`       | Node.js version to use for Solo CLI installation. Must be 22 or higher.                                                                              |
 | `dualMode`               | false    | `false`    | Enable dual mode to deploy two consensus nodes                                                                                                       |
@@ -70,6 +70,18 @@ Each Solo release pins the component versions it was built and tested against, t
 When `installBlockNode` is enabled together with an explicit `hieroVersion`, both must use the same block
 proof format: block node `0.41.0` and newer require consensus node `v0.77.0` or newer, and older block nodes
 require an older consensus node. Solo rejects mismatched combinations before deploying.
+
+### Running Solo older than 0.44
+
+Solo 0.44.0 renamed most of its commands, and this action no longer supports the releases before it. To
+deploy Solo 0.43.x or older, pin the action to `v0.25.0` or an earlier release:
+
+```yaml
+- name: Setup Hiero Solo
+  uses: hiero-ledger/hiero-solo-action@v0.25.0
+  with:
+    soloVersion: 0.43.2
+```
 
 ### Running Solo older than 0.91
 
