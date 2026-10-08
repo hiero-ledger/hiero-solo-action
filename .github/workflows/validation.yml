@@ -86,7 +86,7 @@ jobs:
           echo "✅ Account ${ACCOUNT_ID} holds ${BALANCE} HBAR"
 
   validate-block-node:
-    runs-on: ubuntu-latest
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
@@ -326,7 +326,7 @@ jobs:
           bash ${GITHUB_WORKSPACE}/.github/scripts/check-grpc-connections.sh
 
   validate-grpc-connections-with-mirror:
-    runs-on: ubuntu-latest
+    runs-on: hl-hsa-lin-md
     steps:
       - name: Harden the runner (Audit all outbound calls)
         uses: step-security/harden-runner@e14015d583714f6e62063499dc959a02595150a1 # v2.21.1
