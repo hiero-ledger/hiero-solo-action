@@ -20,7 +20,7 @@ Maintainers are assigned the following scopes in this repository:
 |--------------- | ------------------- | ----- | ---- | -------------- | ----- | ------------------- |
 | Hendrik Ebbers | hendrikebbers       |       |      | hendrik.ebbers |       | Hashgraph           |
 | Georgi Stoykov | gsstoykov           |       |      | glime_39042    |       | LimeChain           |
-| Noah Tayebwa   | Ndacyayisenga-droid |       |      |                |       | Open Elements       |
+| Noah Tayebwa   | Ndacyayisenga-droid |       |      | noah_legend    |       | Open Elements       |
 
 ## Emeritus Maintainers
 
