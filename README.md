@@ -37,10 +37,12 @@ The GitHub action takes the following inputs:
 | `hieroVersion`           | false    | _(auto)_   | Hiero consensus node version to use. Left empty, the version pinned by the selected `soloVersion` is used. When `installBlockNode` is enabled, Solo checks this version against the block node's block proof format. |
 | `installBlockNode`       | false    | `false`    | If set to `true`, the action provisions a block node before consensus node deployment. The block node version is the one pinned by `soloVersion`.    |
 | `mirrorNodeVersion`      | false    | _(auto)_   | Mirror node version to use. Left empty, the version pinned by the selected `soloVersion` is used.                                                     |
-| `installMirrorNode`      | false    | `false`    | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node REST API can be accessed at `localhost:38081`. |
+| `installMirrorNode`      | false    | `false`    | If set to `true`, the action will install a mirror node in addition to the main node. The mirror node REST API can be accessed at `localhost:38081`. For one endpoint that serves every mirror node API, use `enableMirrorIngress`. |
 | `mirrorNodePortRest`     | false    | `38081`    | Port for Mirror Node REST API                                                                                                                        |
 | `mirrorNodePortGrpc`     | false    | `5600`     | Port for Mirror Node gRPC                                                                                                                            |
 | `mirrorNodePortWeb3Rest` | false    | `8545`     | Port for Web3 REST API                                                                                                                               |
+| `enableMirrorIngress`    | false    | `false`    | If set to `true`, the action installs a mirror node and exposes it through its ingress at `localhost:<mirrorNodePortIngress>`. See [Usage with the mirror node ingress](#usage-with-the-mirror-node-ingress). |
+| `mirrorNodePortIngress`  | false    | `38081`    | Port for the mirror node ingress (only if `enableMirrorIngress` or `installRelay` is enabled)                                                       |
 | `installRelay`           | false    | `false`    | If set to `true`, the action will install the JSON-RPC-Relay as part of the setup process.                                                           |
 | `relayPort`              | false    | `37546`    | Port for the JSON-RPC-Relay                                                                                                                          |
 | `grpcProxyPort`          | false    | `9998`     | Port for gRPC Proxy                                                                                                                                  |
@@ -180,6 +182,30 @@ Use `installBlockNode: true` to provision a block node. The block node and conse
   with:
     installBlockNode: true
 ```
+
+## Usage with the mirror node ingress
+
+The mirror node serves its API from several services: the JS REST API, the Java REST API and web3. Paths move
+between them as the mirror node migrates endpoints from the JS REST API to the Java REST API, so a client pointed at
+one service's port breaks when a path it uses moves. The mirror node's ingress routes every path to the service that
+serves it, so `enableMirrorIngress: true` gives one stable base URL, `http://localhost:38081` by default:
+
+```yaml
+- name: Setup Hiero Solo with the mirror node ingress
+  uses: hiero-ledger/hiero-solo-action@v0.25.0
+  id: solo
+  with:
+    enableMirrorIngress: true
+
+- name: Query the mirror node through the ingress
+  run: |
+    curl -s "http://localhost:38081/api/v1/accounts?limit=1"   # JS REST API
+    curl -s "http://localhost:38081/api/v1/network/nodes"      # Java REST API
+```
+
+The ingress takes `localhost:38081`, which is also the default `mirrorNodePortRest`, so the separate forward of the
+JS REST API is skipped then; the ingress serves it too. The gRPC, web3 and Java REST services keep their own ports.
+`installRelay: true` enables the ingress as well, because the relay needs it.
 
 ## Usage with Dual Mode (2 Consensus Nodes)
 
