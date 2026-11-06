@@ -204,6 +204,52 @@ jobs:
             cat response.json
           fi
 
+  validate-mirror-node-ingress:
+    runs-on: hl-hsa-lin-md
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@dc2769abcc0fcfbadfc1df54081c1608579ef6b2 # v2.22.2
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: ⚙️ Setup Hiero Solo with the Mirror Node Ingress
+        uses: ./
+        with:
+          enableMirrorIngress: true
+
+      - name: ✅ Validate the JS and Java REST APIs through the Ingress
+        run: |
+          # The JS REST API serves /accounts and the Java REST API serves /network/nodes; one base URL reaches
+          # both through the ingress.
+          kubectl wait -n solo --for=condition=Ready pod -l app.kubernetes.io/name=restjava --timeout=300s
+
+          INGRESS_URL="http://localhost:38081"
+          MAX_ATTEMPTS=10
+          for path in "/api/v1/accounts?limit=1" "/api/v1/network/nodes"; do
+            RESPONSE=000
+            for attempt in $(seq 1 "${MAX_ATTEMPTS}"); do
+              RESPONSE=$(curl -s -w "%{http_code}" "${INGRESS_URL}${path}" -H 'accept: application/json' -o response.json || echo "000")
+              if [ "${RESPONSE}" = "200" ]; then
+                break
+              fi
+              echo "${path} not ready yet (attempt ${attempt}/${MAX_ATTEMPTS}, status ${RESPONSE}), retrying in 3s..."
+              sleep 3
+            done
+
+            if [ "${RESPONSE}" != "200" ]; then
+              echo "❌ Error: ${INGRESS_URL}${path} failed with status code ${RESPONSE} after ${MAX_ATTEMPTS} attempts"
+              cat response.json
+              kubectl get svc,ingress -n solo
+              exit 1
+            fi
+            echo "✅ ${path} answered through the ingress"
+            cat response.json
+            echo
+          done
+
   validate-json-rpc-relay:
     runs-on: hl-hsa-lin-md
     steps:

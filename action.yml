@@ -31,6 +31,15 @@ inputs:
     description: "Port for Mirror Node WEB3 REST"
     required: false
     default: "8545"
+  enableMirrorIngress:
+    description: "Expose the mirror node through its ingress on mirrorNodePortIngress, which routes each REST, Java REST and web3 path to the service that serves it. Installs a mirror node."
+    required: false
+    default: false
+    type: boolean
+  mirrorNodePortIngress:
+    description: "Port for the mirror node ingress (only if enableMirrorIngress or installRelay is enabled)"
+    required: false
+    default: "38081"
   installRelay:
     description: "Install JSON-RPC-Relay"
     required: false
@@ -161,13 +170,15 @@ runs:
         DUAL_MODE_GRPC_PROXY_PORT: ${{ inputs.dualModeGrpcProxyPort }}
       run: bash "${{ github.action_path }}/scripts/deploy-consensus-network.sh"
 
-    # The relay needs the mirror node's ingress controller, so installRelay implies a mirror node.
+    # The relay needs the mirror node's ingress controller, so installRelay, like enableMirrorIngress, implies a mirror
+    # node with its ingress.
     - name: Deploy mirror node
-      if: ${{ inputs.installMirrorNode == 'true' || inputs.installRelay == 'true' }} # see https://github.com/actions/runner/issues/2238
+      if: ${{ inputs.installMirrorNode == 'true' || inputs.installRelay == 'true' || inputs.enableMirrorIngress == 'true' }} # see https://github.com/actions/runner/issues/2238
       shell: bash
       env:
         MIRROR_NODE_VERSION: ${{ inputs.mirrorNodeVersion }}
-        ENABLE_INGRESS: ${{ inputs.installRelay == 'true' }}
+        ENABLE_INGRESS: ${{ inputs.installRelay == 'true' || inputs.enableMirrorIngress == 'true' }}
+        MIRROR_NODE_PORT_INGRESS: ${{ inputs.mirrorNodePortIngress }}
         MIRROR_NODE_PORT_REST: ${{ inputs.mirrorNodePortRest }}
         MIRROR_NODE_PORT_GRPC: ${{ inputs.mirrorNodePortGrpc }}
         MIRROR_NODE_PORT_WEB3_REST: ${{ inputs.mirrorNodePortWeb3Rest }}
