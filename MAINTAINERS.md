@@ -16,10 +16,11 @@ Maintainers are assigned the following scopes in this repository:
 
 <!-- Please keep this sorted alphabetically by github -->
 
-| Name           | GitHub ID     | Scope | LFID | Discord ID     | Email | Company Affiliation |
-|--------------- | ------------- | ----- | ---- | -------------- | ----- | ------------------- |
-| Hendrik Ebbers | hendrikebbers |       |      | hendrik.ebbers |       | Hashgraph           |
-| Georgi Stoykov | gsstoykov     |       |      | glime_39042    |       | LimeChain           |
+| Name           | GitHub ID           | Scope | LFID | Discord ID     | Email | Company Affiliation |
+|--------------- | ------------------- | ----- | ---- | -------------- | ----- | ------------------- |
+| Hendrik Ebbers | hendrikebbers       |       |      | hendrik.ebbers |       | Hashgraph           |
+| Georgi Stoykov | gsstoykov           |       |      | glime_39042    |       | LimeChain           |
+| Noah Tayebwa   | Ndacyayisenga-droid |       |      | noah_legend    |       | Open Elements       |
 
 ## Emeritus Maintainers
 

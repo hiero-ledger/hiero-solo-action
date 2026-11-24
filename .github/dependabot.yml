@@ -10,7 +10,7 @@ updates:
         patterns:
           - "*"
   - package-ecosystem: "docker"
-    directory: "/local"
+    directory: "/.clusterfuzzlite"
     schedule:
       interval: "weekly"
     open-pull-requests-limit: 5

@@ -1,5 +1,5 @@
 # Solo releases before 0.91.0 deploy the MinIO tenant from quay.io/minio/minio.
-# That registry no longer allows anonymous pulls. Chart 0.54.5 renders the tenant
+# That registry no longer allows anonymous pulls. The solo-deployment chart renders the tenant
 # image as "<repository>:<digest|tag>", so this matches the Silo pin Solo 0.91.0 uses.
 minio-server:
   tenant:
