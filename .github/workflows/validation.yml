@@ -85,6 +85,37 @@ jobs:
           fi
           echo "✅ Account ${ACCOUNT_ID} holds ${BALANCE} HBAR"
 
+  validate-shard-realm:
+    runs-on: hl-hsa-lin-md
+    steps:
+      - name: Harden the runner (Audit all outbound calls)
+        uses: step-security/harden-runner@1d88384fd173af6ecb012dfd0264a306b711241a # v2.22.4
+        with:
+          egress-policy: audit
+
+      - name: 🚀 Checkout Repo
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: ⚙️ Setup Hiero Solo with custom shard and realm
+        id: solo
+        uses: ./
+        with:
+          shard: '1'
+          realm: '2'
+
+      - name: ✅ Validate account IDs use the custom shard and realm
+        env:
+          ECDSA_ACCOUNT_ID: ${{ steps.solo.outputs.ecdsaAccountId }}
+          ED25519_ACCOUNT_ID: ${{ steps.solo.outputs.ed25519AccountId }}
+        run: |
+          for account_id in "${ECDSA_ACCOUNT_ID}" "${ED25519_ACCOUNT_ID}"; do
+            if [[ ! "${account_id}" =~ ^1\.2\.[0-9]+$ ]]; then
+              echo "❌ Error: expected an account ID in shard 1, realm 2, got '${account_id}'"
+              exit 1
+            fi
+            echo "✅ ${account_id}"
+          done
+
   validate-block-node:
     runs-on: hl-hsa-lin-md
     steps:

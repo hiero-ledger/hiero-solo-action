@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Creates the kind cluster and deploys the consensus network, plus an optional block node.
 # Environment: HIERO_VERSION, INSTALL_BLOCK_NODE, DUAL_MODE, HAPROXY_PORT, GRPC_PROXY_PORT,
-#              DUAL_MODE_GRPC_PROXY_PORT
+#              DUAL_MODE_GRPC_PROXY_PORT, SHARD, REALM
 set -euo pipefail
 # shellcheck source=lib/solo-helpers.sh
 source "$(dirname "${BASH_SOURCE[0]}")/lib/solo-helpers.sh"
@@ -58,7 +58,8 @@ fi
 
 echo "Deploying ${node_count} consensus node(s)..."
 solo cluster-ref config connect --cluster-ref "${SOLO_CLUSTER_REF}" --context "${SOLO_CLUSTER_REF}" --debug
-solo deployment config create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" --debug
+solo deployment config create -n "${SOLO_NAMESPACE}" --deployment "${SOLO_DEPLOYMENT}" \
+  --shard "${SHARD:-0}" --realm "${REALM:-0}" --debug
 solo deployment cluster attach --deployment "${SOLO_DEPLOYMENT}" --cluster-ref "${SOLO_CLUSTER_REF}" \
   --num-consensus-nodes "${node_count}" --debug
 solo keys consensus generate --gossip-keys --tls-keys -i "${node_ids}" --deployment "${SOLO_DEPLOYMENT}" --debug

@@ -52,6 +52,8 @@ The GitHub action takes the following inputs:
 | `javaRestApiPort`        | false    | `8084`     | Port for Java-based REST API                                                                                                                         |
 | `nodeVersion`            | false    | `24`       | Node.js version to use for Solo CLI installation. Must be 22 or higher.                                                                              |
 | `dualMode`               | false    | `false`    | Enable dual mode to deploy two consensus nodes                                                                                                       |
+| `shard`                  | false    | `0`        | Shard number of the network. Created account IDs take the form `<shard>.<realm>.<num>`. Non-zero values require consensus node v0.61.0 or newer. |
+| `realm`                  | false    | `0`        | Realm number of the network. Non-zero values require consensus node v0.61.0 or newer.                                                                |
 
 > [!IMPORTANT]
 > When you leave `hieroVersion` and `mirrorNodeVersion` unset, the action does not pass a version to Solo,

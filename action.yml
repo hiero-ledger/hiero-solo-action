@@ -82,6 +82,14 @@ inputs:
     description: "Amount of HBAR to be assigned to the created accounts"
     required: false
     default: "10000000"
+  shard:
+    description: "Shard number of the network. Non-zero values require consensus node v0.61.0 or newer."
+    required: false
+    default: "0"
+  realm:
+    description: "Realm number of the network. Non-zero values require consensus node v0.61.0 or newer."
+    required: false
+    default: "0"
 outputs:
   accountId:
     description: "Account ID of the generated ED25519 account (default for simplicity)"
@@ -125,6 +133,9 @@ runs:
       env:
         NODE_VERSION: ${{ inputs.nodeVersion }}
         SOLO_VERSION: ${{ inputs.soloVersion }}
+        HIERO_VERSION: ${{ inputs.hieroVersion }}
+        SHARD: ${{ inputs.shard }}
+        REALM: ${{ inputs.realm }}
       run: bash "${{ github.action_path }}/scripts/validate-action-inputs.sh"
 
     - name: Setup Java
@@ -168,6 +179,8 @@ runs:
         HAPROXY_PORT: ${{ inputs.haproxyPort }}
         GRPC_PROXY_PORT: ${{ inputs.grpcProxyPort }}
         DUAL_MODE_GRPC_PROXY_PORT: ${{ inputs.dualModeGrpcProxyPort }}
+        SHARD: ${{ inputs.shard }}
+        REALM: ${{ inputs.realm }}
       run: bash "${{ github.action_path }}/scripts/deploy-consensus-network.sh"
 
     # The relay needs the mirror node's ingress controller, so installRelay, like enableMirrorIngress, implies a mirror
